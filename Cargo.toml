@@ -2,7 +2,7 @@
 name = "cliai"
 version = "0.1.0"
 edition = "2021"
-authors = ["CLIAI Team <contact@cliai.com>"]
+authors = ["Byte Strix <contact@bytestrix.com>"]
 description = "A powerful CLI assistant powered by local AI (Ollama)"
 homepage = "https://github.com/cliai-team/cliai"
 repository = "https://github.com/cliai-team/cliai"

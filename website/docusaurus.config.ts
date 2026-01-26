@@ -146,7 +146,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} CLIAI Team. Licensed under MIT License.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Byte Strix. Licensed under MIT License.`,
     },
     prism: {
       theme: prismThemes.github,

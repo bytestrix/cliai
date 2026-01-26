@@ -1,4 +1,4 @@
-# Maintainer: CLIAI Team <contact@cliai.com>
+# Maintainer: Byte Strix <contact@bytestrix.com>
 pkgname=cliai
 pkgver=0.1.0
 pkgrel=1
