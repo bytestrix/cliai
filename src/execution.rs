@@ -216,6 +216,10 @@ mod tests {
             dry_run,
             safety_level,
             context_timeout: 2000,
+            ai_timeout: 30000,
+            api_token: None,
+            use_cloud: false,
+            backend_url: "https://api.cliai.com".to_string(),
         }
     }
 

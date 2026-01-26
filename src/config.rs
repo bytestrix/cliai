@@ -347,6 +347,9 @@ mod tests {
             safety_level: SafetyLevel::Medium,
             context_timeout: 2000,
             ai_timeout: 120000,
+            api_token: None,
+            use_cloud: false,
+            backend_url: "https://api.cliai.com".to_string(),
         }
     }
 

@@ -584,14 +584,12 @@ Original request: {}",
                 self.log_activity(&format!("Provider error: {}", _e));
                 
                 // Check if any provider is available
-                    return Err(anyhow!(
-                        "Local AI provider unavailable. Please ensure:\n\
-                        1. Ollama is running at {} (for local mode)\n\
-                        2. The configured model is pulled",
-                        self.config.ollama_url
-                    ));
-                
-                Err(_e)
+                Err(anyhow!(
+                    "Local AI provider unavailable. Please ensure:\n\
+                    1. Ollama is running at {} (for local mode)\n\
+                    2. The configured model is pulled",
+                    self.config.ollama_url
+                ))
             }
         }
     }
