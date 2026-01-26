@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>cliai</id>
+    <version>0.1.0</version>
+    <packageSourceUrl>https://github.com/cliai-team/cliai</packageSourceUrl>
+    <owners>CLIAI Team</owners>
+    <title>CLIAI - CLI AI Assistant</title>
+    <authors>CLIAI Team</authors>
+    <projectUrl>https://github.com/cliai-team/cliai</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/cliai-team/cliai/main/assets/icon.png</iconUrl>
+    <copyright>2024 CLIAI Team</copyright>
+    <licenseUrl>https://github.com/cliai-team/cliai/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/cliai-team/cliai</projectSourceUrl>
+    <docsUrl>https://github.com/cliai-team/cliai/wiki</docsUrl>
+    <bugTrackerUrl>https://github.com/cliai-team/cliai/issues</bugTrackerUrl>
+    <tags>cli ai assistant terminal command-line ollama</tags>
+    <summary>A powerful CLI assistant powered by local AI (Ollama)</summary>
+    <description>
+CLIAI is a command-line AI assistant that helps you with terminal commands, system administration, and general questions. It is built for local-first AI (via Ollama), ensuring maximum privacy and offline capability.
+
+Features:
+- Privacy-First: Local AI processing with Ollama
+- Safety-Focused: Multi-level command validation
+- Fast & Reliable: Built-in performance monitoring
+- Smart Command Generation: Context-aware suggestions
+- Copy-Paste Safe: Clean command output
+- Flexible Execution: Auto-execute or manual copy-paste
+    </description>
+    <releaseNotes>https://github.com/cliai-team/cliai/releases</releaseNotes>
+    <dependencies>
+      <dependency id="vcredist2019" version="14.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

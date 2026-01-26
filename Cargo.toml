@@ -1,0 +1,87 @@
+[package]
+name = "cliai"
+version = "0.1.0"
+edition = "2021"
+authors = ["CLIAI Team <contact@cliai.com>"]
+description = "A powerful CLI assistant powered by local AI (Ollama)"
+homepage = "https://github.com/cliai-team/cliai"
+repository = "https://github.com/cliai-team/cliai"
+license = "MIT"
+keywords = ["cli", "ai", "assistant", "ollama", "terminal"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+exclude = [
+    "target/",
+    ".git/",
+    ".env",
+    "*.log",
+    "test_results_*.md",
+]
+
+[[bin]]
+name = "cliai"
+path = "src/main.rs"
+
+[[bin]]
+name = "test_runner"
+path = "src/bin/test_runner.rs"
+
+[lib]
+name = "cliai"
+path = "src/lib.rs"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+clap = { version = "4.4", features = ["derive"] }
+dirs = "5.0"
+colored = "2.1"
+indicatif = "0.17"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.10"
+async-trait = "0.1"
+webbrowser = "0.8"
+
+[dev-dependencies]
+tempfile = "3.8"
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+debug = true
+opt-level = 0
+
+[features]
+default = ["local-ai"]
+local-ai = []
+debug-mode = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# Debian package metadata
+[package.metadata.deb]
+maintainer = "CLIAI Team <contact@cliai.com>"
+copyright = "2024, CLIAI Team <contact@cliai.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+CLIAI is a command-line AI assistant that helps you with terminal commands, \
+system administration, and general questions. It is built for local-first AI \
+(via Ollama), ensuring maximum privacy and offline capability."""
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/cliai", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/cliai/", "644"],
+    ["LICENSE", "usr/share/doc/cliai/", "644"],
+]

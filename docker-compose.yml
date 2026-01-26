@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  cliai:
+    build: .
+    container_name: cliai
+    volumes:
+      - cliai_config:/home/cliai/.config/cliai
+      - cliai_cache:/home/cliai/.cache/cliai
+    environment:
+      - RUST_LOG=info
+      - CLIAI_CONFIG_DIR=/home/cliai/.config/cliai
+    networks:
+      - cliai_network
+    restart: unless-stopped
+    
+  # Optional: Ollama service for local AI
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - cliai_network
+    restart: unless-stopped
+    # Uncomment if you have GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  cliai_config:
+    driver: local
+  cliai_cache:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  cliai_network:
+    driver: bridge

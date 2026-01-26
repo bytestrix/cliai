@@ -1,0 +1,71 @@
+# Rust
+/target/
+**/*.rs.bk
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Logs
+*.log
+logs/
+
+# Configuration (user-specific)
+config.toml
+cliai.toml
+
+# Test outputs
+test_results_*.md
+cliai_test_results*.md
+
+# Build artifacts
+*.tar.gz
+*.zip
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Package files
+*.deb
+*.rpm
+*.pkg
+
+# Coverage reports
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+
+# Benchmark results
+criterion/
+
+# Local development
+.local/
+dev/
+
+# Documentation site
+website/node_modules/
+website/build/
+website/.docusaurus/
+website/yarn.lock
+website/package-lock.json
