@@ -22,6 +22,7 @@ Thumbs.db
 .env.local
 .env.production
 .env.staging
+.env.example
 
 # Logs
 *.log
@@ -69,3 +70,11 @@ website/build/
 website/.docusaurus/
 website/yarn.lock
 website/package-lock.json
+
+# Kiro IDE files (private)
+.kiro/
+
+# Private development files
+*.private
+*.secret
+.secrets/
