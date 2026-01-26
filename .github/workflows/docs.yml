@@ -32,13 +32,13 @@ jobs:
         with:
           node-version: 18
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: website/package.json
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: website
       
       - name: Build website

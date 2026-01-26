@@ -57,7 +57,10 @@ jobs:
       run: cargo clippy --all-targets --all-features -- -D warnings
 
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose --lib --bins
+      env:
+        # Skip integration tests that require Ollama
+        SKIP_INTEGRATION_TESTS: true
 
     - name: Build
       run: cargo build --verbose --release
@@ -84,7 +87,10 @@ jobs:
     - name: Install cargo-tarpaulin
       run: cargo install cargo-tarpaulin
     - name: Generate code coverage
-      run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+      run: cargo tarpaulin --verbose --lib --bins --timeout 120 --out xml
+      env:
+        # Skip integration tests that require Ollama
+        SKIP_INTEGRATION_TESTS: true
     - name: Upload to codecov.io
       uses: codecov/codecov-action@v3
       with:
