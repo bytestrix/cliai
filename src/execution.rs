@@ -30,7 +30,7 @@ impl ExecutionMode {
                 if config.auto_execute {
                     ExecutionMode::Safe
                 } else {
-                    ExecutionMode::RequiresConfirmation(vec!["User confirmation required (auto-execute: off)".to_string()])
+                    ExecutionMode::SuggestOnly
                 }
             }
             ValidationResult::Invalid(_, errors) => {

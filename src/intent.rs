@@ -126,10 +126,46 @@ impl IntentClassifier {
     /// Classify the intent of a user request
     pub fn classify_intent(&self, request: &str) -> IntentAnalysis {
         let normalized = request.to_lowercase().trim().to_string();
+
+        // "Vague" requests should generally be treated as ambiguous, even if they contain an action verb.
+        // Examples: "install something", "delete stuff", "do anything".
+        let vague_indicators = ["something", "anything", "stuff", "things"];
+        let is_vague = vague_indicators.iter().any(|indicator| normalized.contains(indicator));
+
+        // Very short / vague requests should be treated as ambiguous.
+        // This avoids defaulting to Actionable for inputs like "files", "git", "python script".
+        let word_count = normalized.split_whitespace().count();
+        if word_count <= 2 && !normalized.ends_with('?') {
+            // If it's not clearly actionable or explanatory, ask for clarification.
+            // We still compute scores below; this is an early safe-guard for extreme brevity.
+            let has_strong_explanatory = self.explanatory_patterns.iter().any(|p| p.is_match(&normalized));
+            let has_strong_actionable = self.actionable_patterns.iter().any(|p| p.is_match(&normalized));
+            if !has_strong_explanatory && !has_strong_actionable {
+                return IntentAnalysis {
+                    intent: UserIntent::Ambiguous,
+                    confidence: 0.5,
+                    reasoning: "Request is too short/vague to infer intent confidently".to_string(),
+                    clarification_needed: Some(self.generate_clarification_prompt(&normalized)),
+                };
+            }
+        }
         
         // Check for strong patterns first
         let explanatory_score = self.calculate_explanatory_score(&normalized);
         let actionable_score = self.calculate_actionable_score(&normalized);
+
+        // If the user is vague, prefer clarification unless intent is extremely strong.
+        if is_vague && explanatory_score < 0.7 && actionable_score < 0.7 {
+            return IntentAnalysis {
+                intent: UserIntent::Ambiguous,
+                confidence: 0.5,
+                reasoning: format!(
+                    "Request is vague; asking clarification (explanatory: {:.2}, actionable: {:.2})",
+                    explanatory_score, actionable_score
+                ),
+                clarification_needed: Some(self.generate_clarification_prompt(&normalized)),
+            };
+        }
         
         // Determine intent based on scores with a lower threshold for better detection
         let (intent, confidence, reasoning) = if explanatory_score > actionable_score + 0.2 && explanatory_score > 0.4 {
@@ -272,7 +308,11 @@ impl IntentClassifier {
         let action_starters = ["create", "make", "build", "install", "remove", "delete", "copy", "move", "rename", "run", "execute", "start", "stop", "find", "search", "list", "show", "display"];
         let first_word = request.split_whitespace().next().unwrap_or("");
         if action_starters.contains(&first_word) {
-            score += 0.5; // High score for direct action verbs
+            if is_vague {
+                score += 0.2; // Lower weight when the request is vague ("install something")
+            } else {
+                score += 0.5; // High score for direct action verbs
+            }
         }
         
         // Normalize score to 0-1 range

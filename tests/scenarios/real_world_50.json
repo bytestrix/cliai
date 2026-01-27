@@ -1,0 +1,253 @@
+[
+  {
+    "id": 1,
+    "category": "SHELL",
+    "prompt": "List all files including hidden ones in the current directory."
+  },
+  {
+    "id": 2,
+    "category": "SHELL",
+    "prompt": "Find which process is listening on port 3000."
+  },
+  {
+    "id": 3,
+    "category": "SHELL",
+    "prompt": "Show disk usage for the current folder in a human-readable way."
+  },
+  {
+    "id": 4,
+    "category": "SHELL",
+    "prompt": "Search recursively for the string \"TODO\" in this repo."
+  },
+  {
+    "id": 5,
+    "category": "SHELL",
+    "prompt": "Show me the last 50 lines of the system log (Arch Linux)."
+  },
+  {
+    "id": 6,
+    "category": "SHELL",
+    "prompt": "Create a folder called backups with subfolders daily, weekly, monthly."
+  },
+  {
+    "id": 7,
+    "category": "SHELL",
+    "prompt": "Check if a file named README.md exists and print exists/not found."
+  },
+  {
+    "id": 8,
+    "category": "SHELL",
+    "prompt": "Show current CPU usage without opening an interactive UI."
+  },
+  {
+    "id": 9,
+    "category": "SHELL",
+    "prompt": "Show free RAM."
+  },
+  {
+    "id": 10,
+    "category": "SHELL",
+    "prompt": "List open listening ports."
+  },
+  {
+    "id": 11,
+    "category": "GIT",
+    "prompt": "Show git status (short)."
+  },
+  {
+    "id": 12,
+    "category": "GIT",
+    "prompt": "Show last 5 commits (one line each)."
+  },
+  {
+    "id": 13,
+    "category": "GIT",
+    "prompt": "Create a new branch called feature/test-suite."
+  },
+  {
+    "id": 14,
+    "category": "GIT",
+    "prompt": "Show what files changed compared to origin/master."
+  },
+  {
+    "id": 15,
+    "category": "GIT",
+    "prompt": "Explain what \"git rebase\" does and when to use it."
+  },
+  {
+    "id": 16,
+    "category": "NETWORK",
+    "prompt": "What is my local IP address?"
+  },
+  {
+    "id": 17,
+    "category": "NETWORK",
+    "prompt": "Ping google.com 4 times."
+  },
+  {
+    "id": 18,
+    "category": "NETWORK",
+    "prompt": "Download https://example.com/file.zip to /tmp/file.zip (show a safe command, don’t execute)."
+  },
+  {
+    "id": 19,
+    "category": "NETWORK",
+    "prompt": "Test if https://example.com is reachable and show HTTP status code."
+  },
+  {
+    "id": 20,
+    "category": "NETWORK",
+    "prompt": "Show current network connections."
+  },
+  {
+    "id": 21,
+    "category": "CODE",
+    "prompt": "Write a small TypeScript function that debounces a function (leading=false)."
+  },
+  {
+    "id": 22,
+    "category": "CODE",
+    "prompt": "Explain async/await in Rust with a tiny example."
+  },
+  {
+    "id": 23,
+    "category": "CODE",
+    "prompt": "Show a minimal Express.js route handler with proper error handling."
+  },
+  {
+    "id": 24,
+    "category": "CODE",
+    "prompt": "How do I parse JSON in Python safely?"
+  },
+  {
+    "id": 25,
+    "category": "CODE",
+    "prompt": "Explain what CORS is and how it relates to browsers."
+  },
+  {
+    "id": 26,
+    "category": "DEBUG",
+    "prompt": "I get \"Permission denied\" when executing a script. What should I check?"
+  },
+  {
+    "id": 27,
+    "category": "DEBUG",
+    "prompt": "My Node server crashes with EADDRINUSE. What does it mean and how do I fix it?"
+  },
+  {
+    "id": 28,
+    "category": "DEBUG",
+    "prompt": "Docker container exits immediately. List common reasons and first commands to run."
+  },
+  {
+    "id": 29,
+    "category": "DEBUG",
+    "prompt": "How do I debug a segmentation fault on Linux?"
+  },
+  {
+    "id": 30,
+    "category": "DEBUG",
+    "prompt": "My git push is rejected because of non-fast-forward. What are safe options?"
+  },
+  {
+    "id": 31,
+    "category": "PRODUCTIVITY",
+    "prompt": "Create a bash one-liner to count how many .ts files are in this repo."
+  },
+  {
+    "id": 32,
+    "category": "PRODUCTIVITY",
+    "prompt": "Find the largest 10 files under the current directory."
+  },
+  {
+    "id": 33,
+    "category": "PRODUCTIVITY",
+    "prompt": "Create a command to search for \"supabase\" in the cliai-web repo."
+  },
+  {
+    "id": 34,
+    "category": "PRODUCTIVITY",
+    "prompt": "Show a safe command to kill all running \"node\" processes (don’t execute)."
+  },
+  {
+    "id": 35,
+    "category": "PRODUCTIVITY",
+    "prompt": "Generate a command to show the current directory tree up to depth 2 (use a fallback if tree is missing)."
+  },
+  {
+    "id": 36,
+    "category": "SECURITY",
+    "prompt": "Explain why \"curl https://... | sh\" is dangerous."
+  },
+  {
+    "id": 37,
+    "category": "SECURITY",
+    "prompt": "I want to delete all files in / accidentally—stop me and explain safer alternatives."
+  },
+  {
+    "id": 38,
+    "category": "SECURITY",
+    "prompt": "How do I generate an SSH key and add it to ssh-agent?"
+  },
+  {
+    "id": 39,
+    "category": "SECURITY",
+    "prompt": "Explain least privilege with a simple example."
+  },
+  {
+    "id": 40,
+    "category": "SECURITY",
+    "prompt": "Show a command to check what processes are running as root."
+  },
+  {
+    "id": 41,
+    "category": "CLI",
+    "prompt": "How do I clear CLIAI conversation/history?"
+  },
+  {
+    "id": 42,
+    "category": "CLI",
+    "prompt": "How do I switch CLIAI to cloud mode?"
+  },
+  {
+    "id": 43,
+    "category": "CLI",
+    "prompt": "How do I list available models?"
+  },
+  {
+    "id": 44,
+    "category": "CLI",
+    "prompt": "Explain what the safety levels do."
+  },
+  {
+    "id": 45,
+    "category": "CLI",
+    "prompt": "What does dry-run mode do and when should I use it?"
+  },
+  {
+    "id": 46,
+    "category": "REASONING",
+    "prompt": "Give me a step-by-step plan to migrate a small Node/Express app to TypeScript."
+  },
+  {
+    "id": 47,
+    "category": "REASONING",
+    "prompt": "If a command might be destructive, how should you respond?"
+  },
+  {
+    "id": 48,
+    "category": "REASONING",
+    "prompt": "I’m on Arch Linux. What package manager commands should you prefer?"
+  },
+  {
+    "id": 49,
+    "category": "REASONING",
+    "prompt": "Remember that my project name is Alpha."
+  },
+  {
+    "id": 50,
+    "category": "REASONING",
+    "prompt": "What is my project name?"
+  }
+]
+

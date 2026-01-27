@@ -13,6 +13,7 @@ use crate::agents::profiles::*;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::time::Instant;
+use std::env;
 
 pub mod profiles;
 
@@ -82,15 +83,41 @@ impl Orchestrator {
                 let _ = writeln!(file, "[{}] {}", timestamp, activity);
             }
         }
+        
+        // Also log to console if debug mode is enabled
+        if self.show_work_enabled() {
+            println!("[activity] {}", activity);
+        }
+    }
+
+    fn show_work_enabled(&self) -> bool {
+        matches!(
+            env::var("CLIAI_SHOW_WORK").ok().as_deref(),
+            Some("1") | Some("true") | Some("TRUE") | Some("yes") | Some("YES")
+        )
+    }
+
+    fn show_work(&self, message: &str) {
+        if self.show_work_enabled() {
+            println!("[work] {}", message);
+        }
     }
 
     pub async fn process(&mut self, prompt: &str) -> Result<String> {
         self.log_activity(&format!("User Prompt: {}", prompt));
+        self.show_work(&format!("Processing prompt: '{}'", prompt));
         
         // 1. Classify user intent FIRST (before any processing)
+        let intent_start = Instant::now();
         let intent_analysis = self.intent_classifier.classify_intent(prompt);
-        self.log_activity(&format!("Intent Analysis: {:?} (confidence: {:.2})", 
-                                  intent_analysis.intent, intent_analysis.confidence));
+        let intent_duration = intent_start.elapsed();
+        
+        self.log_activity(&format!("Intent Analysis: {:?} (confidence: {:.2}) - took {}ms", 
+                                  intent_analysis.intent, intent_analysis.confidence, intent_duration.as_millis()));
+        self.show_work(&format!(
+            "Intent: {:?} (confidence {:.2}) - {}ms",
+            intent_analysis.intent, intent_analysis.confidence, intent_duration.as_millis()
+        ));
         
         // 2. Handle ambiguous intent with clarification
         if intent_analysis.intent == UserIntent::Ambiguous {
@@ -103,25 +130,29 @@ impl Orchestrator {
         // 3. Check for destructive actions and require explicit confirmation
         if self.intent_classifier.is_destructive_action(prompt) {
             self.log_activity("Destructive action detected");
+            self.show_work("Destructive action detected - applying safety measures");
             if intent_analysis.intent == UserIntent::Explanatory {
                 return Ok(format!("Command: (none)\n\nI can explain how destructive operations work, but I won't suggest actual destructive commands for explanatory requests. Please clarify if you want to learn about these operations or actually perform them."));
             } else if intent_analysis.intent == UserIntent::Actionable {
                 // For actionable destructive requests, we'll still generate the command but flag it as sensitive
                 self.log_activity("Proceeding with destructive actionable request (will be flagged as sensitive)");
+                self.show_work("Proceeding with destructive request - will be flagged as sensitive");
             }
         }
         
         // 4. Check for built-in commands (instant response without AI processing)
+        let builtin_start = Instant::now();
         if let Some(builtin_cmd) = self.builtin_commands.match_command(prompt) {
-            // Start performance monitoring for built-in command
-            let builtin_start = Instant::now();
+            let builtin_match_duration = builtin_start.elapsed();
             
-            self.log_activity(&format!("Built-in Command Matched: {}", builtin_cmd.description));
+            self.log_activity(&format!("Built-in Command Matched: {} - took {}ms", builtin_cmd.description, builtin_match_duration.as_millis()));
+            self.show_work(&format!("Built-in command matched: {} ({}ms)", builtin_cmd.description, builtin_match_duration.as_millis()));
             
             // Validate built-in command against intent
             let command = self.builtin_commands.generate_command(builtin_cmd, prompt);
             if let Err(validation_error) = self.intent_classifier.validate_command_for_intent(&command, &intent_analysis.intent) {
                 self.log_activity(&format!("Built-in command validation failed: {}", validation_error));
+                self.show_work(&format!("Built-in validation failed: {}", validation_error));
                 return Ok(format!("Command: (none)\n\n{}", validation_error));
             }
             
@@ -140,29 +171,25 @@ impl Orchestrator {
                 true
             );
             
-            // Log performance if target was exceeded
-            let target = OperationType::BuiltinCommand.get_target_duration(
-                self.provider_manager.get_performance_monitor().get_targets()
-            );
-            if builtin_duration > target {
-                // eprintln!("⚠️  Built-in command exceeded target: took {}ms (target: {}ms)", 
-                //     builtin_duration.as_millis(), 
-                //     target.as_millis());
-            }
-            
-            self.log_activity(&format!("Built-in Response: {}", response.replace('\n', " ").chars().take(100).collect::<String>()));
+            self.log_activity(&format!("Built-in Response: {} - total time {}ms", response.replace('\n', " ").chars().take(100).collect::<String>(), builtin_duration.as_millis()));
+            self.show_work(&format!("Built-in response generated ({}ms)", builtin_duration.as_millis()));
             return Ok(response);
         }
         
         // 5. If no built-in match, proceed with AI processing
         self.log_activity("No built-in command match, proceeding with AI processing");
+        self.show_work("No built-in match - proceeding with AI processing");
         
         // 6. Analyze Request (Intent + Context commands in one call)
+        let analysis_start = Instant::now();
         let analysis = self.analyze_request(prompt).await?;
+        let analysis_duration = analysis_start.elapsed();
+        
         let category = analysis["category"].as_str().unwrap_or("GENERAL").to_uppercase();
         let commands = analysis["commands"].as_array();
         
-        self.log_activity(&format!("Detected Category: {}", category));
+        self.log_activity(&format!("Detected Category: {} - analysis took {}ms", category, analysis_duration.as_millis()));
+        self.show_work(&format!("Route category: {} ({}ms)", category, analysis_duration.as_millis()));
         
         // 7. Gather Context using the new safe context gathering system
         let mut context_commands = Vec::new();
@@ -188,6 +215,10 @@ impl Orchestrator {
                 }
             }
         }
+
+        if !context_commands.is_empty() {
+            self.show_work(&format!("Context commands: {:?}", context_commands));
+        }
         
         // Gather system context safely with performance monitoring
         let context_start = Instant::now();
@@ -204,17 +235,10 @@ impl Orchestrator {
         let context_str = self.context_gatherer.format_context_for_prompt(&system_context);
         
         if !context_str.is_empty() {
-            self.log_activity(&format!("Gathered system context in {}ms", system_context.total_duration_ms));
-            
-            // Log performance if target was exceeded
-            let target = OperationType::ContextGathering.get_target_duration(
-                self.provider_manager.get_performance_monitor().get_targets()
-            );
-            if context_duration > target {
-                // eprintln!("⚠️  Context gathering exceeded target: took {}ms (target: {}ms)", 
-                //     context_duration.as_millis(), 
-                //     target.as_millis());
-            }
+            self.log_activity(&format!("Gathered system context in {}ms - {} chars", context_duration.as_millis(), context_str.len()));
+            self.show_work(&format!("Context gathered: {} chars ({}ms)", context_str.len(), context_duration.as_millis()));
+        } else {
+            self.show_work("No system context gathered");
         }
 
         // 8. Select appropriate agent and context window
@@ -224,30 +248,57 @@ impl Orchestrator {
             "LOG" => (&LOG_EXPERT, ContextWindow::specialized_agent()),
             _ => (&GENERAL_CLIAI, ContextWindow::general_agent()),
         };
+        self.show_work(&format!("Agent: {}", agent.name));
+
+        // Note: provider_manager may still fail over; this is the preferred mode.
+        let preferred_provider = if self.config.use_cloud && self.config.api_token.is_some() {
+            "Cloud (Pro)"
+        } else {
+            "Local (Ollama)"
+        };
+        self.show_work(&format!("Preferred provider: {}", preferred_provider));
 
         // 9. Build final prompt with appropriate context and intent information
+        let prompt_build_start = Instant::now();
         let final_prompt = self.build_agent_prompt_with_intent(agent, prompt, &context_window, &context_str, &intent_analysis);
+        let prompt_build_duration = prompt_build_start.elapsed();
+        
+        self.log_activity(&format!("Built final prompt: {} chars - took {}ms", final_prompt.len(), prompt_build_duration.as_millis()));
+        self.show_work(&format!("Final prompt built: {} chars ({}ms)", final_prompt.len(), prompt_build_duration.as_millis()));
 
         // 10. Generate Response with format validation for ShellExpert
+        let ai_start = Instant::now();
         let response = if category == "SHELL" {
-            let initial_response = self.call_ollama_with_prompt(&final_prompt).await?;
+            self.show_work("Using ShellExpert with validation");
+            let initial_response = self.call_ollama_with_prompt(&final_prompt, agent).await?;
+            let ai_initial_duration = ai_start.elapsed();
+            self.show_work(&format!("Initial AI response: {} chars ({}ms)", initial_response.len(), ai_initial_duration.as_millis()));
+            
+            let validation_start = Instant::now();
             let validated_response = self.validate_and_retry_shell_response(prompt, &initial_response, 2).await?;
+            let validation_duration = validation_start.elapsed();
+            self.show_work(&format!("Response validation completed ({}ms)", validation_duration.as_millis()));
             
             // Additional validation: check if generated command matches intent
             if let Some(command) = extract_command(&validated_response) {
                 if let Err(validation_error) = self.intent_classifier.validate_command_for_intent(&command, &intent_analysis.intent) {
                     self.log_activity(&format!("Generated command validation failed: {}", validation_error));
+                    self.show_work(&format!("Command-intent validation failed: {}", validation_error));
                     return Ok(format!("Command: (none)\n\n{}\n\nOriginal request: {}", validation_error, prompt));
                 }
             }
             
             validated_response
         } else {
-            self.call_ollama_with_prompt(&final_prompt).await?
+            self.show_work(&format!("Using {} agent", agent.name));
+            self.call_ollama_with_prompt(&final_prompt, agent).await?
         };
         
-        self.log_activity(&format!("AI Response: {}", response.replace('\n', " ").chars().take(100).collect::<String>()));
-        self.log_activity(&format!("AI Response Length: {} chars", response.len()));
+        let total_ai_duration = ai_start.elapsed();
+        
+        self.log_activity(&format!("AI Response: {} - length: {} chars - took {}ms", response.replace('\n', " ").chars().take(100).collect::<String>(), response.len(), total_ai_duration.as_millis()));
+        self.show_work(&format!("AI response generated: {} chars ({}ms)", response.len(), total_ai_duration.as_millis()));
+        
         Ok(response)
     }
     
@@ -338,8 +389,8 @@ impl Orchestrator {
     }
     
     /// Execute Ollama call with pre-built prompt
-    async fn call_ollama_with_prompt(&mut self, full_prompt: &str) -> Result<String> {
-        self.execute_ollama_call(full_prompt).await
+    async fn call_ollama_with_prompt(&mut self, full_prompt: &str, agent: &AgentProfile) -> Result<String> {
+        self.execute_ollama_call(full_prompt, agent).await
     }
     
     /// Validate ShellExpert response format and retry if needed
@@ -373,7 +424,7 @@ Original request: {}",
             let context_window = ContextWindow::shell_expert();
             let full_retry_prompt = self.build_agent_prompt(&SHELL_EXPERT, &retry_prompt, &context_window, "");
             
-            let retry_response = self.call_ollama_with_prompt(&full_retry_prompt).await?;
+            let retry_response = self.call_ollama_with_prompt(&full_retry_prompt, &SHELL_EXPERT).await?;
             
             // Use Box::pin to handle async recursion
             return Box::pin(self.validate_and_retry_shell_response(original_prompt, &retry_response, max_retries - 1)).await;
@@ -569,15 +620,15 @@ Original request: {}",
             context_priority: ContextPriority::Balanced,
         };
         let full_prompt = self.build_agent_prompt(agent, prompt, &context_window, "");
-        self.execute_ollama_call(&full_prompt).await
+        self.execute_ollama_call(&full_prompt, agent).await
     }
 
-    async fn execute_ollama_call(&mut self, full_prompt: &str) -> Result<String> {
+    async fn execute_ollama_call(&mut self, full_prompt: &str, agent: &AgentProfile) -> Result<String> {
         // Convert configured timeout (ms) to Duration
         let timeout = std::time::Duration::from_millis(self.config.ai_timeout);
         
         // Use provider manager for offline-first functionality
-        match self.provider_manager.get_response(full_prompt, &GENERAL_CLIAI, timeout).await {
+        match self.provider_manager.get_response(full_prompt, agent, timeout).await {
             Ok(response) => Ok(response),
             Err(_e) => {
                 // Log the error for debugging
@@ -608,6 +659,17 @@ pub fn extract_command(response: &str) -> Option<String> {
         
         // Clean up formatting but preserve the command structure
         let cleaned = cmd_line.trim();
+        
+        // Remove common shell prompt prefixes
+        let cleaned = if cleaned.starts_with("$ ") {
+            &cleaned[2..]
+        } else if cleaned.starts_with("# ") {
+            &cleaned[2..]
+        } else if cleaned.starts_with("> ") {
+            &cleaned[2..]
+        } else {
+            cleaned
+        };
         
         if !cleaned.is_empty() {
             return Some(cleaned.to_string());

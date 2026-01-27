@@ -119,16 +119,22 @@ impl ProviderManager {
     pub fn new() -> Self {
         let mut retry_limits = HashMap::new();
         retry_limits.insert(ProviderType::Local, 2);
+        retry_limits.insert(ProviderType::Cloud, 1);
 
         let mut circuit_breakers = HashMap::new();
         circuit_breakers.insert(
             ProviderType::Local,
             CircuitBreaker::new(5, Duration::from_secs(30))
         );
+        circuit_breakers.insert(
+            ProviderType::Cloud,
+            CircuitBreaker::new(3, Duration::from_secs(15))
+        );
 
         Self {
             providers: Vec::new(),
-            fallback_chain: vec![ProviderType::Local],
+            // Default is local-first; Orchestrator may override based on config.
+            fallback_chain: vec![ProviderType::Local, ProviderType::Cloud],
             retry_limits,
             circuit_breakers,
             performance_monitor: PerformanceMonitor::new(),
@@ -182,7 +188,10 @@ impl ProviderManager {
             }
 
             // Determine operation type for performance monitoring
-            let op_type = OperationType::LocalOllama;
+            let op_type = match provider_type {
+                ProviderType::Local => OperationType::LocalOllama,
+                ProviderType::Cloud => OperationType::CloudProvider,
+            };
 
             // Get retry limit
             let retry_limit = *self.retry_limits.get(provider_type).unwrap_or(&1);
@@ -308,7 +317,7 @@ impl ProviderManager {
         }
 
         if !any_provider_available {
-            return Err(anyhow!("No AI providers are currently available."));
+            return Err(anyhow!("No providers available"));
         }
 
         if all_models.is_empty() {
@@ -683,7 +692,7 @@ mod tests {
     fn test_provider_manager_creation() {
         let manager = ProviderManager::new();
         
-        assert_eq!(manager.fallback_chain, vec![ProviderType::Cloud, ProviderType::Local]);
+        assert_eq!(manager.fallback_chain, vec![ProviderType::Local, ProviderType::Cloud]);
         assert_eq!(manager.retry_limits.get(&ProviderType::Cloud), Some(&1));
         assert_eq!(manager.retry_limits.get(&ProviderType::Local), Some(&2));
         assert!(manager.circuit_breakers.contains_key(&ProviderType::Cloud));
@@ -710,13 +719,13 @@ mod tests {
     fn test_provider_manager_switch_preference() {
         let mut manager = ProviderManager::new();
         
-        // Initially Cloud first
-        assert_eq!(manager.fallback_chain[0], ProviderType::Cloud);
-        
-        // Switch to Local first
-        manager.switch_provider_preference(ProviderType::Local);
+        // Initially Local first
         assert_eq!(manager.fallback_chain[0], ProviderType::Local);
-        assert_eq!(manager.fallback_chain[1], ProviderType::Cloud);
+
+        // Switch to Cloud first
+        manager.switch_provider_preference(ProviderType::Cloud);
+        assert_eq!(manager.fallback_chain[0], ProviderType::Cloud);
+        assert_eq!(manager.fallback_chain[1], ProviderType::Local);
     }
 
     #[test]
@@ -781,7 +790,7 @@ mod tests {
         );
         
         assert_eq!(provider.get_provider_type(), ProviderType::Cloud);
-        assert_eq!(provider.get_name(), "Cloud");
+        assert_eq!(provider.get_name(), "Cloud (Pro)");
     }
 
     #[test]

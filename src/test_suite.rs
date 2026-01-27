@@ -113,14 +113,14 @@ impl TestSuite {
         suite
     }
 
-    /// Initialize the 50 test questions based on the existing test script
+    /// Initialize the 50 test questions based on real-world usage patterns
     fn initialize_test_questions(&mut self) {
-        // File Management (Questions 1-10)
+        // Context-Aware File Management (Questions 1-15)
         self.test_questions.extend(vec![
             TestQuestion {
                 id: 1,
                 category: TestCategory::FileManagement,
-                question: "How do I list all files including hidden ones?".to_string(),
+                question: "what files are in this directory?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
@@ -128,7 +128,7 @@ impl TestSuite {
             TestQuestion {
                 id: 2,
                 category: TestCategory::FileManagement,
-                question: "Create a directory called test_project".to_string(),
+                question: "show me all rust files in this project".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
@@ -136,7 +136,7 @@ impl TestSuite {
             TestQuestion {
                 id: 3,
                 category: TestCategory::FileManagement,
-                question: "How can I find all .rs files in this folder?".to_string(),
+                question: "what is this README.md file about?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
@@ -144,47 +144,47 @@ impl TestSuite {
             TestQuestion {
                 id: 4,
                 category: TestCategory::FileManagement,
-                question: "Show me how to check if old.txt exists".to_string(),
+                question: "move this file to the parent directory".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: true,
+                is_safe_to_execute: false, // Generic - needs specific file
                 expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 5,
                 category: TestCategory::FileManagement,
-                question: "Copy all contents of folder A to folder B".to_string(),
+                question: "create 10 folders named folder-1 to folder-10".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Uses placeholder paths
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 6,
                 category: TestCategory::FileManagement,
-                question: "Count how many lines are in main.rs".to_string(),
+                question: "how big is this directory?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::FileOperation),
+                expected_command_type: Some(CommandType::SystemQuery),
             },
             TestQuestion {
                 id: 7,
                 category: TestCategory::FileManagement,
-                question: "Rename temp.js to app.js".to_string(),
+                question: "find all files modified in the last hour".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // File doesn't exist
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 8,
                 category: TestCategory::FileManagement,
-                question: "Show the last 20 lines of the system log".to_string(),
+                question: "backup this entire project to /tmp/backup".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: true,
+                is_safe_to_execute: false, // Backup operations can be risky
                 expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 9,
                 category: TestCategory::FileManagement,
-                question: "Create a file named config.yaml with version 1.0 in it".to_string(),
+                question: "what's the largest file in this directory?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
@@ -192,63 +192,59 @@ impl TestSuite {
             TestQuestion {
                 id: 10,
                 category: TestCategory::FileManagement,
-                question: "What is the size of the current directory?".to_string(),
+                question: "show me the first 20 lines of main.rs".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
-        ]);
-
-        // System Info (Questions 11-15)
-        self.test_questions.extend(vec![
             TestQuestion {
                 id: 11,
-                category: TestCategory::SystemInfo,
-                question: "How much free RAM do I have?".to_string(),
+                category: TestCategory::FileManagement,
+                question: "count how many lines of code are in this rust project".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 12,
-                category: TestCategory::SystemInfo,
-                question: "Show my current CPU usage".to_string(),
+                category: TestCategory::FileManagement,
+                question: "find all TODO comments in the codebase".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 13,
-                category: TestCategory::SystemInfo,
-                question: "What is my hostname?".to_string(),
+                category: TestCategory::FileManagement,
+                question: "compress this directory into a zip file".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 14,
-                category: TestCategory::SystemInfo,
-                question: "Show kernel version".to_string(),
+                category: TestCategory::FileManagement,
+                question: "what files have changed since yesterday?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 15,
-                category: TestCategory::SystemInfo,
-                question: "List all block devices".to_string(),
+                category: TestCategory::FileManagement,
+                question: "create a new file called config.json with basic structure".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
+                expected_command_type: Some(CommandType::FileOperation),
             },
         ]);
 
-        // Git Operations (Questions 16-20)
+        // Git & Version Control (Questions 16-25)
         self.test_questions.extend(vec![
             TestQuestion {
                 id: 16,
                 category: TestCategory::GitOperations,
-                question: "What is the current git status?".to_string(),
+                question: "what's the current git status?".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::GitCommand),
@@ -256,15 +252,15 @@ impl TestSuite {
             TestQuestion {
                 id: 17,
                 category: TestCategory::GitOperations,
-                question: "Show me how to commit all changes with message initial commit".to_string(),
+                question: "push these changes to a new branch called issue-232".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute git commits
+                is_safe_to_execute: false, // Don't execute git push in tests
                 expected_command_type: Some(CommandType::GitCommand),
             },
             TestQuestion {
                 id: 18,
                 category: TestCategory::GitOperations,
-                question: "Show the last 3 commits".to_string(),
+                question: "show me the last 5 commits".to_string(),
                 should_have_command: true,
                 is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::GitCommand),
@@ -272,273 +268,269 @@ impl TestSuite {
             TestQuestion {
                 id: 19,
                 category: TestCategory::GitOperations,
-                question: "How do I create a new branch called feature/ai?".to_string(),
+                question: "what branch am I on?".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute git branch creation
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::GitCommand),
             },
             TestQuestion {
                 id: 20,
                 category: TestCategory::GitOperations,
-                question: "How do I merge main into the current branch?".to_string(),
+                question: "stage all changes and commit with message 'fix: resolve formatting issues'".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute git merge
+                is_safe_to_execute: false, // Don't execute git commits in tests
+                expected_command_type: Some(CommandType::GitCommand),
+            },
+            TestQuestion {
+                id: 21,
+                category: TestCategory::GitOperations,
+                question: "show me what changed in the last commit".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::GitCommand),
+            },
+            TestQuestion {
+                id: 22,
+                category: TestCategory::GitOperations,
+                question: "create a new branch from main called feature/logging".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't create branches in tests
+                expected_command_type: Some(CommandType::GitCommand),
+            },
+            TestQuestion {
+                id: 23,
+                category: TestCategory::GitOperations,
+                question: "why is git not pushing? what's the error?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::GitCommand),
+            },
+            TestQuestion {
+                id: 24,
+                category: TestCategory::GitOperations,
+                question: "undo the last commit but keep the changes".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't execute git reset in tests
+                expected_command_type: Some(CommandType::GitCommand),
+            },
+            TestQuestion {
+                id: 25,
+                category: TestCategory::GitOperations,
+                question: "show me all branches including remote ones".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::GitCommand),
             },
         ]);
 
-        // Network (Questions 21-25)
-        self.test_questions.extend(vec![
-            TestQuestion {
-                id: 21,
-                category: TestCategory::Network,
-                question: "What is my IP address?".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-            TestQuestion {
-                id: 22,
-                category: TestCategory::Network,
-                question: "Ping google.com 4 times".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-            TestQuestion {
-                id: 23,
-                category: TestCategory::Network,
-                question: "Which ports are open on my machine?".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-            TestQuestion {
-                id: 24,
-                category: TestCategory::Network,
-                question: "How do I download a file from a URL?".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: false, // Don't execute downloads
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-            TestQuestion {
-                id: 25,
-                category: TestCategory::Network,
-                question: "Show my network connections".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-        ]);
-
-        // Programming & Code (Questions 26-35)
+        // System Performance & Debugging (Questions 26-35)
         self.test_questions.extend(vec![
             TestQuestion {
                 id: 26,
-                category: TestCategory::Programming,
-                question: "Write a python script that prints Hello World".to_string(),
-                should_have_command: false, // Code generation, not shell command
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::ProcessManagement,
+                question: "which process is using the most CPU?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::ProcessCommand),
             },
             TestQuestion {
                 id: 27,
-                category: TestCategory::Programming,
-                question: "Explain what async/await does in Rust".to_string(),
-                should_have_command: false, // Explanation, not shell command
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
-            },
-            TestQuestion {
-                id: 28,
-                category: TestCategory::Programming,
-                question: "How do I install the requests library in Python?".to_string(),
+                category: TestCategory::ProcessManagement,
+                question: "why is my system using so much RAM?".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute package installs
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::SystemQuery),
             },
             TestQuestion {
+                id: 28,
+                category: TestCategory::ProcessManagement,
+                question: "what's running on port 8080?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::ProcessCommand),
+            },
+            TestQuestion {
                 id: 29,
-                category: TestCategory::Programming,
-                question: "What is the difference between let and const in JavaScript?".to_string(),
-                should_have_command: false, // Explanation, not shell command
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::ProcessManagement,
+                question: "kill all node processes".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't execute kill commands in tests
+                expected_command_type: Some(CommandType::ProcessCommand),
             },
             TestQuestion {
                 id: 30,
-                category: TestCategory::General,
-                question: "What's the regex for matching an email address?".to_string(),
-                should_have_command: false, // General knowledge
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::SystemInfo,
+                question: "how much disk space is left?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
             },
             TestQuestion {
                 id: 31,
-                category: TestCategory::Programming,
-                question: "How do I parse JSON in Python?".to_string(),
-                should_have_command: false, // Code explanation
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::SystemInfo,
+                question: "show me system uptime and load".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
             },
             TestQuestion {
                 id: 32,
-                category: TestCategory::Programming,
-                question: "Show me a basic Cargo.toml structure".to_string(),
-                should_have_command: false, // Code example
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::Network,
+                question: "test internet connection to google".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::NetworkCommand),
             },
             TestQuestion {
                 id: 33,
-                category: TestCategory::Programming,
-                question: "How do I use map in Javascript?".to_string(),
-                should_have_command: false, // Code explanation
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::Network,
+                question: "what's my public IP address?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::NetworkCommand),
             },
             TestQuestion {
                 id: 34,
-                category: TestCategory::General,
-                question: "How do I debug a Segmentation Fault error?".to_string(),
-                should_have_command: false, // Troubleshooting advice
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                category: TestCategory::SystemInfo,
+                question: "check if docker is running".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::ProcessCommand),
             },
             TestQuestion {
                 id: 35,
-                category: TestCategory::FileManagement,
-                question: "Write a bash script to backup my docs folder".to_string(),
+                category: TestCategory::SystemInfo,
+                question: "what version of rust is installed?".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute backup scripts
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+        ]);
+
+        // Development & Project Setup (Questions 36-45)
+        self.test_questions.extend(vec![
+            TestQuestion {
+                id: 36,
+                category: TestCategory::Programming,
+                question: "create a fresh React project called my-app".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't create projects in tests
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 37,
+                category: TestCategory::Programming,
+                question: "set up a new Node.js backend with express".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't create projects in tests
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 38,
+                category: TestCategory::Programming,
+                question: "build this rust project".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 39,
+                category: TestCategory::Programming,
+                question: "run the tests for this project".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 40,
+                category: TestCategory::Programming,
+                question: "why did the build fail? show me the error".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 41,
+                category: TestCategory::Programming,
+                question: "install the latest version of node".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't install software in tests
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 42,
+                category: TestCategory::Programming,
+                question: "format all rust files in this project".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 43,
+                category: TestCategory::Programming,
+                question: "check for security vulnerabilities in dependencies".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 44,
+                category: TestCategory::Programming,
+                question: "start a development server on port 3000".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't start servers in tests
+                expected_command_type: Some(CommandType::SystemQuery),
+            },
+            TestQuestion {
+                id: 45,
+                category: TestCategory::Programming,
+                question: "what dependencies does this project have?".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::FileOperation),
             },
         ]);
 
-        // Process Management (Questions 36-40)
+        // Troubleshooting & Problem Solving (Questions 46-50)
         self.test_questions.extend(vec![
-            TestQuestion {
-                id: 36,
-                category: TestCategory::ProcessManagement,
-                question: "List all running processes".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::ProcessCommand),
-            },
-            TestQuestion {
-                id: 37,
-                category: TestCategory::ProcessManagement,
-                question: "How do I kill a process with PID 1234?".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: false, // Don't execute kill commands
-                expected_command_type: Some(CommandType::ProcessCommand),
-            },
-            TestQuestion {
-                id: 38,
-                category: TestCategory::ProcessManagement,
-                question: "Find the PID of node".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::ProcessCommand),
-            },
-            TestQuestion {
-                id: 39,
-                category: TestCategory::ProcessManagement,
-                question: "How do I see which process is using port 8080?".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::ProcessCommand),
-            },
-            TestQuestion {
-                id: 40,
-                category: TestCategory::SystemInfo,
-                question: "Show system uptime".to_string(),
-                should_have_command: true,
-                is_safe_to_execute: true,
-                expected_command_type: Some(CommandType::SystemQuery),
-            },
-        ]);
-
-        // General & Context Memory (Questions 41-50)
-        self.test_questions.extend(vec![
-            TestQuestion {
-                id: 41,
-                category: TestCategory::General,
-                question: "What did I ask you first?".to_string(),
-                should_have_command: false, // Context/memory question
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
-            },
-            TestQuestion {
-                id: 42,
-                category: TestCategory::General,
-                question: "Who are you?".to_string(),
-                should_have_command: false, // Identity question
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
-            },
-            TestQuestion {
-                id: 43,
-                category: TestCategory::General,
-                question: "How can I check the weather from terminal?".to_string(),
-                should_have_command: true, // General advice but might include command
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::NetworkCommand),
-            },
-            TestQuestion {
-                id: 44,
-                category: TestCategory::General,
-                question: "Tell me a programming joke".to_string(),
-                should_have_command: false, // Entertainment
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
-            },
-            TestQuestion {
-                id: 45,
-                category: TestCategory::General,
-                question: "Remember that my project name is Alpha".to_string(),
-                should_have_command: false, // Memory instruction
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
-            },
             TestQuestion {
                 id: 46,
                 category: TestCategory::General,
-                question: "What was my project name?".to_string(),
-                should_have_command: false, // Memory recall
+                question: "fix this permission denied error".to_string(),
+                should_have_command: false, // Needs more context
                 is_safe_to_execute: false,
                 expected_command_type: Some(CommandType::Explanation),
             },
             TestQuestion {
                 id: 47,
                 category: TestCategory::General,
-                question: "How do I exit the terminal?".to_string(),
+                question: "why can't I connect to localhost:8080?".to_string(),
                 should_have_command: true,
-                is_safe_to_execute: false, // Don't execute exit commands
-                expected_command_type: Some(CommandType::SystemQuery),
+                is_safe_to_execute: true,
+                expected_command_type: Some(CommandType::NetworkCommand),
             },
             TestQuestion {
                 id: 48,
                 category: TestCategory::General,
-                question: "What is 2 plus 2?".to_string(),
-                should_have_command: false, // Math question
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                question: "clean up old docker containers and images".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Don't execute docker cleanup in tests
+                expected_command_type: Some(CommandType::SystemQuery),
             },
             TestQuestion {
                 id: 49,
                 category: TestCategory::General,
-                question: "Help me with this error: Permission denied".to_string(),
-                should_have_command: false, // Error analysis
-                is_safe_to_execute: false,
-                expected_command_type: Some(CommandType::Explanation),
+                question: "monitor this log file for errors".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: false, // Generic - needs specific file
+                expected_command_type: Some(CommandType::FileOperation),
             },
             TestQuestion {
                 id: 50,
                 category: TestCategory::General,
-                question: "How do I clear our conversation?".to_string(),
-                should_have_command: true, // System command
-                is_safe_to_execute: false,
+                question: "help me debug why this command failed: cargo build".to_string(),
+                should_have_command: true,
+                is_safe_to_execute: true,
                 expected_command_type: Some(CommandType::SystemQuery),
             },
         ]);
@@ -546,68 +538,59 @@ impl TestSuite {
 
     /// Initialize expected patterns for command validation
     fn initialize_expected_patterns(&mut self) {
-        // File Management patterns
+        // Context-Aware File Management patterns
         self.expected_patterns.insert(1, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"ls\s+(-[la]+|--all)").unwrap(),
-                description: "List command with all/hidden flag".to_string(),
+                pattern: Regex::new(r"ls\s+(-[la]+|--all)?").unwrap(),
+                description: "List files command".to_string(),
                 is_required: true,
             },
         ]);
 
         self.expected_patterns.insert(2, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"mkdir\s+test_project").unwrap(),
-                description: "Create directory command".to_string(),
+                pattern: Regex::new(r"find\s+.*\.rs").unwrap(),
+                description: "Find rust files command".to_string(),
                 is_required: true,
             },
         ]);
 
         self.expected_patterns.insert(3, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"find\s+.*\.rs").unwrap(),
-                description: "Find command for .rs files".to_string(),
+                pattern: Regex::new(r"cat\s+README\.md").unwrap(),
+                description: "Read README file command".to_string(),
                 is_required: true,
             },
         ]);
 
-        self.expected_patterns.insert(4, vec![
+        self.expected_patterns.insert(5, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"test\s+-f\s+old\.txt").unwrap(),
-                description: "File existence test command".to_string(),
+                pattern: Regex::new(r"mkdir\s+.*folder-[0-9]+").unwrap(),
+                description: "Create numbered folders command".to_string(),
                 is_required: true,
             },
         ]);
 
         self.expected_patterns.insert(6, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"wc\s+-l\s+main\.rs").unwrap(),
-                description: "Line count command".to_string(),
+                pattern: Regex::new(r"du\s+(-h|--human-readable)").unwrap(),
+                description: "Directory size command".to_string(),
                 is_required: true,
             },
         ]);
 
-        // System Info patterns
+        self.expected_patterns.insert(10, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"head\s+(-n\s*20|--lines=20).*main\.rs").unwrap(),
+                description: "Show first 20 lines of main.rs".to_string(),
+                is_required: true,
+            },
+        ]);
+
         self.expected_patterns.insert(11, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"free\s+(-h|--human-readable)").unwrap(),
-                description: "Memory usage command".to_string(),
-                is_required: true,
-            },
-        ]);
-
-        self.expected_patterns.insert(13, vec![
-            ExpectedPattern {
-                pattern: Regex::new(r"hostname").unwrap(),
-                description: "Hostname command".to_string(),
-                is_required: true,
-            },
-        ]);
-
-        self.expected_patterns.insert(14, vec![
-            ExpectedPattern {
-                pattern: Regex::new(r"uname\s+(-r|-a)").unwrap(),
-                description: "Kernel version command".to_string(),
+                pattern: Regex::new(r"find.*\.rs.*wc\s+-l").unwrap(),
+                description: "Count lines in rust files".to_string(),
                 is_required: true,
             },
         ]);
@@ -623,42 +606,132 @@ impl TestSuite {
 
         self.expected_patterns.insert(17, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"git\s+commit.*-m.*initial commit").unwrap(),
-                description: "Git commit command with message".to_string(),
+                pattern: Regex::new(r"git\s+(checkout\s+-b|branch).*issue-232").unwrap(),
+                description: "Create branch issue-232".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(18, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"git\s+log.*(-5|--oneline.*-5)").unwrap(),
+                description: "Show last 5 commits".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(19, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"git\s+(branch|status)").unwrap(),
+                description: "Show current branch".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(20, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"git\s+(add.*&&.*git\s+commit|commit\s+-am).*fix.*formatting").unwrap(),
+                description: "Stage and commit with message".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        // System Performance patterns
+        self.expected_patterns.insert(26, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"(top|htop|ps\s+aux.*sort)").unwrap(),
+                description: "Show CPU usage command".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(27, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"(free\s+-h|ps\s+aux.*sort.*mem)").unwrap(),
+                description: "Show memory usage command".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(28, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"(lsof\s+-i:8080|netstat.*8080|ss.*8080)").unwrap(),
+                description: "Check port 8080 usage".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(30, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"df\s+(-h|--human-readable)").unwrap(),
+                description: "Check disk space command".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(31, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"uptime").unwrap(),
+                description: "System uptime command".to_string(),
                 is_required: true,
             },
         ]);
 
         // Network patterns
-        self.expected_patterns.insert(21, vec![
+        self.expected_patterns.insert(32, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"(ip\s+addr|ifconfig|hostname\s+-I)").unwrap(),
-                description: "IP address command".to_string(),
+                pattern: Regex::new(r"ping.*google").unwrap(),
+                description: "Ping google command".to_string(),
                 is_required: true,
             },
         ]);
 
-        self.expected_patterns.insert(22, vec![
+        self.expected_patterns.insert(33, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"ping\s+(-c\s+4|--count=4).*google\.com").unwrap(),
-                description: "Ping command with count".to_string(),
+                pattern: Regex::new(r"(curl\s+ifconfig\.me|curl\s+ipinfo\.io|dig.*myip)").unwrap(),
+                description: "Get public IP command".to_string(),
                 is_required: true,
             },
         ]);
 
-        // Process Management patterns
-        self.expected_patterns.insert(36, vec![
+        // Development patterns
+        self.expected_patterns.insert(38, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"ps\s+(aux|ef)").unwrap(),
-                description: "Process list command".to_string(),
+                pattern: Regex::new(r"cargo\s+build").unwrap(),
+                description: "Rust build command".to_string(),
                 is_required: true,
             },
         ]);
 
-        self.expected_patterns.insert(37, vec![
+        self.expected_patterns.insert(39, vec![
             ExpectedPattern {
-                pattern: Regex::new(r"kill\s+(-9\s+)?1234").unwrap(),
-                description: "Kill process command".to_string(),
+                pattern: Regex::new(r"cargo\s+test").unwrap(),
+                description: "Rust test command".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(42, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"cargo\s+fmt").unwrap(),
+                description: "Rust format command".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        // Troubleshooting patterns
+        self.expected_patterns.insert(47, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"(telnet\s+localhost\s+8080|nc.*localhost.*8080|curl.*localhost:8080)").unwrap(),
+                description: "Test localhost connection".to_string(),
+                is_required: true,
+            },
+        ]);
+
+        self.expected_patterns.insert(50, vec![
+            ExpectedPattern {
+                pattern: Regex::new(r"cargo\s+build.*2>&1").unwrap(),
+                description: "Show build errors command".to_string(),
                 is_required: true,
             },
         ]);

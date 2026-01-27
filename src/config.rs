@@ -465,7 +465,7 @@ mod tests {
         assert!(Config::validate_config(&config).is_err());
         
         // Invalid: excessive timeout
-        config.context_timeout = 40000;
+        config.context_timeout = 65000;
         assert!(Config::validate_config(&config).is_err());
     }
 
