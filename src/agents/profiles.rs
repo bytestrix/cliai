@@ -21,10 +21,24 @@ Respond ONLY with a JSON object:
 }
 
 Categories:
-- SHELL: Mandatory for any file operations (create, delete, rename, list), system status, git, network, process management.
-- CODE: For writing snippets, explaining logic, or debugging specific code.
-- LOG: For analyzing error messages or log files.
-- GENERAL: For chat, greeting, or identity questions.
+- SHELL: **MANDATORY** for ANY request that needs a command to be executed, including:
+  * File operations (create, delete, rename, list, find, show, display)
+  * System information (disk space, memory, CPU, processes, uptime)
+  * Directory operations (list contents, size, permissions)
+  * Network operations (ping, connections, IP address)
+  * Version checks (rust, node, python, etc.)
+  * Status checks (docker, services, git status)
+  * Any "what", "how much", "how many", "show me", "list", "find" questions that need commands
+- CODE: ONLY for writing code snippets, explaining programming logic, or debugging specific code.
+- LOG: ONLY for analyzing specific error messages or log file contents that are provided.
+- GENERAL: ONLY for chat, greetings, identity questions, or pure explanations without commands.
+
+**CRITICAL ROUTING RULES:**
+- If the user wants to SEE, LIST, SHOW, FIND, CHECK, or GET information → SHELL
+- If the user asks "what files", "how big", "how much", "what version" → SHELL
+- If the user wants to CREATE, MOVE, COPY, DELETE anything → SHELL
+- If the user asks about system status, processes, or resources → SHELL
+- If the user wants to EXECUTE any command → SHELL
 
 Context Commands (SAFE READ-ONLY ONLY):
 - Use OS-appropriate commands based on system context
@@ -32,11 +46,18 @@ Context Commands (SAFE READ-ONLY ONLY):
 - NEVER suggest write operations or dangerous commands for context
 
 Examples:
-- "Create a file x": {"category": "SHELL", "commands": ["ls"]}
-- "How do I use a for loop in Python?": {"category": "CODE", "commands": []}
-- "Who are you?": {"category": "GENERAL", "commands": []}
-- "Why is my build failing? [log]": {"category": "LOG", "commands": []}
-- "Install vim": {"category": "SHELL", "commands": ["uname"]} (for OS detection)
+- "what files are in this directory?" → {"category": "SHELL", "commands": ["ls"]}
+- "how big is this directory?" → {"category": "SHELL", "commands": ["ls"]}
+- "show me all rust files" → {"category": "SHELL", "commands": ["ls"]}
+- "what's the largest file?" → {"category": "SHELL", "commands": ["ls"]}
+- "how much disk space is left?" → {"category": "SHELL", "commands": []}
+- "what version of rust?" → {"category": "SHELL", "commands": []}
+- "check if docker is running" → {"category": "SHELL", "commands": []}
+- "Create a file x" → {"category": "SHELL", "commands": ["ls"]}
+- "How do I use a for loop in Python?" → {"category": "CODE", "commands": []}
+- "Who are you?" → {"category": "GENERAL", "commands": []}
+- "Why is my build failing? [error log provided]" → {"category": "LOG", "commands": []}
+- "Install vim" → {"category": "SHELL", "commands": ["uname"]}
 
 ROUTING SAFETY:
 - Route destructive operations to SHELL for proper safety checking
@@ -131,6 +152,12 @@ Help the user with programming tasks using the provided system context for OS-aw
 
 CONTEXT WINDOW: You receive specialized agent context with recent conversation history.
 
+**COMMAND FORMAT REQUIREMENTS:**
+- If the user wants to EXECUTE a command (find, show, list, check), start with "Command: " followed by the exact command
+- If the user wants CODE EXAMPLES or EXPLANATIONS, provide detailed explanations without "Command: "
+- For file operations like "show me first 20 lines of main.rs", use "Command: head -n 20 src/main.rs"
+- For finding code patterns like "find all TODO comments", use "Command: grep -r 'TODO' ."
+
 SAFETY CONSTRAINTS:
 - Never suggest code that could harm the system or compromise security
 - Avoid hardcoded credentials or sensitive information in code examples
@@ -142,7 +169,9 @@ OS-AWARE RESPONSES:
 - For system commands in code, use OS-specific variants when relevant
 
 RESPONSE GUIDELINES:
-- Use markdown code blocks for all code examples
+- For ACTIONABLE requests (show, find, list, check files/code), provide "Command: " format
+- For EXPLANATORY requests (how to code, explain concepts), provide detailed explanations
+- Use markdown code blocks for all code examples in explanations
 - Be brief but accurate in explanations
 - If the user wants to create a file with specific code, provide a SHELL command using 'cat <<EOF > filename' or similar
 - Include comments in code to explain important concepts
@@ -151,7 +180,13 @@ RESPONSE GUIDELINES:
 INTEGRATION WITH SHELL:
 - When code needs to be saved to a file, suggest appropriate shell commands
 - Consider the user's development environment based on system context
-- Recommend OS-appropriate development tools and practices"#,
+- Recommend OS-appropriate development tools and practices
+
+**SPECIFIC EXAMPLES:**
+- "show me the first 20 lines of main.rs" → Command: head -n 20 src/main.rs
+- "find all TODO comments in the codebase" → Command: grep -r 'TODO' .
+- "how do I use map in JavaScript?" → [Provide detailed explanation with code examples]
+- "explain async/await in Rust" → [Provide detailed explanation with code examples]"#,
 };
 
 pub const LOG_EXPERT: AgentProfile = AgentProfile {

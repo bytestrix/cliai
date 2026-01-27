@@ -37,18 +37,15 @@ pub struct IntentClassifier {
 impl IntentClassifier {
     pub fn new() -> Self {
         let explanatory_patterns = vec![
-            // Question patterns
-            Regex::new("^(how|what|why|when|where|which)\\s").unwrap(),
-            Regex::new("\\?$").unwrap(),
-            // Learning patterns
-            Regex::new("\\b(explain|show me|tell me|teach me|help me understand)\\b").unwrap(),
+            // Learning patterns - these are clearly explanatory
+            Regex::new("\\b(explain|teach me|help me understand|tutorial|guide|example|demonstration)\\b").unwrap(),
             Regex::new("\\b(what does .* do|how does .* work)\\b").unwrap(),
-            // Information seeking
-            Regex::new("\\b(what is|what are|what's)\\b").unwrap(),
-            // Tutorial requests
-            Regex::new("\\b(tutorial|guide|example|demonstration)\\b").unwrap(),
-            // Show me patterns
-            Regex::new("\\bshow me\\b").unwrap(),
+            Regex::new("\\b(what is|what are|what's the difference|difference between)\\b").unwrap(),
+            // Conceptual questions
+            Regex::new("\\b(why does|why is|why would|purpose of|meaning of)\\b").unwrap(),
+            // How-to questions that are clearly educational
+            Regex::new("\\bhow to\\b").unwrap(),
+            Regex::new("\\bhow do i\\b.*\\?").unwrap(),
         ];
 
         let actionable_patterns = vec![
@@ -62,6 +59,12 @@ impl IntentClassifier {
             Regex::new("\\b(i want to|i need to|can you|could you)\\s").unwrap(),
             // File operations
             Regex::new("\\b(file|directory|folder|script|program)\\b.*\\b(create|make|delete|remove|copy|move)\\b").unwrap(),
+            // Information gathering that requires commands
+            Regex::new("^(what|which|how much|how many|how big)\\s.*\\b(files|directory|disk|space|memory|cpu|process|version|size)\\b").unwrap(),
+            Regex::new("\\b(show me|list|find)\\s.*\\b(files|directories|processes|version|status)\\b").unwrap(),
+            // Status and information queries that need commands
+            Regex::new("\\b(check|test|verify)\\s").unwrap(),
+            Regex::new("\\b(what version|what files|what's running|what's in|what's the)\\b").unwrap(),
         ];
 
         let explanatory_keywords = vec![
@@ -99,6 +102,14 @@ impl IntentClassifier {
             "list".to_string(),
             "download".to_string(),
             "upload".to_string(),
+            "show".to_string(),
+            "display".to_string(),
+            "check".to_string(),
+            "test".to_string(),
+            "verify".to_string(),
+            "count".to_string(),
+            "compress".to_string(),
+            "backup".to_string(),
         ];
 
         let destructive_patterns = vec![
@@ -368,11 +379,29 @@ impl IntentClassifier {
             "ls", "cat", "head", "tail", "grep", "find", "which", "whereis",
             "ps", "top", "df", "du", "free", "uname", "whoami", "id", "pwd",
             "git", "stat", "file", "wc", "sort", "uniq", "awk", "sed", 
-            "echo", "printf", "date", "cal", "uptime"
+            "echo", "printf", "date", "cal", "uptime", "lsof", "netstat", "ss",
+            "systemctl", "service", "rustc", "cargo", "node", "npm", "python",
+            "java", "javac", "gcc", "make", "cmake", "zip", "tar", "gzip"
         ];
         
         let first_word = command.split_whitespace().next().unwrap_or("");
-        informational_commands.iter().any(|cmd| first_word == *cmd)
+        
+        // Allow informational commands
+        if informational_commands.iter().any(|cmd| first_word == *cmd) {
+            return true;
+        }
+        
+        // Allow compound commands with informational parts
+        if command.contains(" | ") || command.contains(" && ") || command.contains(" || ") {
+            // Check if all parts are informational
+            let parts: Vec<&str> = command.split(&[' ', '|', '&'][..]).collect();
+            return parts.iter().any(|part| {
+                let trimmed = part.trim();
+                informational_commands.iter().any(|cmd| trimmed.starts_with(cmd))
+            });
+        }
+        
+        false
     }
 }
 
