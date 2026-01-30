@@ -46,6 +46,8 @@ impl IntentClassifier {
             // How-to questions that are clearly educational
             Regex::new("\\bhow to\\b").unwrap(),
             Regex::new("\\bhow do i\\b.*\\?").unwrap(),
+            // Show me how to patterns (educational)
+            Regex::new("\\bshow me how to\\b").unwrap(),
         ];
 
         let actionable_patterns = vec![

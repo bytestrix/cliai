@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'website/**'
+      - 'docs/**'
+      - 'README.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -27,28 +28,47 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: website/package.json
-      
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
-      - name: Install dependencies
-        run: npm install
-        working-directory: website
-      
-      - name: Build website
-        run: npm run build
-        working-directory: website
+      - name: Create documentation site
+        run: |
+          mkdir -p docs
+          cp README.md docs/index.md
+          
+          # Create a simple HTML page
+          cat > docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>CLIAI - CLI AI Assistant</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+                  h1 { color: #2563eb; }
+                  code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
+                  pre { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+              </style>
+          </head>
+          <body>
+              <div id="content"></div>
+              <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+              <script>
+                  fetch('index.md')
+                      .then(response => response.text())
+                      .then(markdown => {
+                          document.getElementById('content').innerHTML = marked.parse(markdown);
+                      });
+              </script>
+          </body>
+          </html>
+          EOF
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/build
+          path: docs
 
   deploy:
     environment:

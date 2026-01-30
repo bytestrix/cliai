@@ -26,6 +26,10 @@ path = "src/main.rs"
 name = "test_runner"
 path = "src/bin/test_runner.rs"
 
+[[bin]]
+name = "compare_runner"
+path = "src/bin/compare_runner.rs"
+
 [lib]
 name = "cliai"
 path = "src/lib.rs"

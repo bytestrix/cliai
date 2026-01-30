@@ -298,6 +298,11 @@ impl ExecutableCommand {
             ExecutionMode::Safe => None, // No instructions needed for safe execution
         }
     }
+    
+    /// Get the command explanation
+    pub fn get_explanation(&self) -> &str {
+        &self.explanation
+    }
 }
 
 #[cfg(test)]

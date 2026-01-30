@@ -137,9 +137,23 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-aarch64-linux-gnu
+        echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+        # Verify cross-compiler installation
+        aarch64-linux-gnu-gcc --version
+        
+    - name: Debug build environment
+      run: |
+        echo "Target: ${{ matrix.target }}"
+        echo "Rust version:"
+        rustc --version
+        echo "Cargo version:"
+        cargo --version
+        echo "Environment variables:"
+        env | grep CARGO || true
 
     - name: Build
       run: cargo build --release --target ${{ matrix.target }}
+      timeout-minutes: 30
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
