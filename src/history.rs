@@ -14,6 +14,7 @@ pub struct History {
 }
 
 /// Context window configuration for different agent types
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ContextWindow {
     pub max_turns: usize,
@@ -71,6 +72,7 @@ impl ContextWindow {
     }
 }
 
+#[allow(dead_code)]
 impl History {
     pub fn load() -> Self {
         let history_path = Self::get_history_path();

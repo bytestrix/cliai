@@ -1,8 +1,10 @@
 pub mod agents;
+pub mod api_keys;
 pub mod builtin_commands;
 pub mod config;
 pub mod context;
 pub mod error_handling;
+pub mod execution;
 pub mod history;
 pub mod intent;
 pub mod logging;
@@ -14,10 +16,12 @@ pub mod test_suite;
 pub mod validation;
 
 pub use agents::*;
+pub use api_keys::*;
 pub use builtin_commands::*;
 pub use config::*;
 pub use context::*;
 pub use error_handling::*;
+pub use execution::*;
 pub use history::*;
 pub use intent::*;
 pub use logging::*;

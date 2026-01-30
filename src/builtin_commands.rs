@@ -6,6 +6,7 @@ use std::io::Write;
 use crate::os_context::{OSContext, OSType, PackageManager};
 
 /// A built-in command with strict pattern matching
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct BuiltinCommand {
     pub pattern: Regex,
@@ -31,6 +32,7 @@ pub struct BuiltinCommands {
     pub os_context: OSContext,
 }
 
+#[allow(dead_code)]
 impl BuiltinCommands {
     /// Create a new BuiltinCommands instance with all 20 essential commands
     pub fn new() -> Self {

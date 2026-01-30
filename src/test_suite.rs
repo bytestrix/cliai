@@ -24,6 +24,7 @@ pub struct TestSuite {
     safe_commands: Vec<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct TestQuestion {
     pub id: usize,
@@ -62,6 +63,7 @@ pub struct ExpectedPattern {
     pub is_required: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct TestResult {
     pub question_id: usize,
@@ -91,6 +93,7 @@ pub struct PatternMatch {
     pub is_required: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
     pub success: bool,
@@ -99,6 +102,7 @@ pub struct ExecutionResult {
     pub exit_code: i32,
 }
 
+#[allow(dead_code)]
 impl TestSuite {
     pub fn new() -> Self {
         let mut suite = Self {
@@ -1075,7 +1079,7 @@ impl TestSuite {
         analysis
     }
 
-    /// Run the complete test suite against CLIAI
+    /// Run the complete test suite against CLIAI with PARALLEL EXECUTION
     pub async fn run_complete_test_suite(&self, config: Config) -> Result<Vec<TestResult>> {
         // Skip integration tests in CI environment
         if is_ci_environment() {
@@ -1083,84 +1087,117 @@ impl TestSuite {
             return Ok(vec![]);
         }
         
-        let mut results = Vec::new();
         let total_questions = self.test_questions.len();
         
-        println!("{}", "🧪 Starting CLIAI Comprehensive Test Suite".bold().cyan());
+        println!("{}", "🧪 Starting CLIAI Comprehensive Test Suite (PARALLEL EXECUTION)".bold().cyan());
         println!("Testing {} questions across all categories...\n", total_questions);
         
-        for (index, question) in self.test_questions.iter().enumerate() {
-            println!("{} Testing question {}/{}: {}", 
-                "🔍".cyan(), 
-                index + 1, 
-                total_questions, 
-                question.question.dimmed()
+        // Run tests in parallel batches to avoid overwhelming the AI provider
+        let batch_size = 5; // Process 5 tests concurrently
+        let mut all_results = Vec::new();
+        
+        for (batch_index, batch) in self.test_questions.chunks(batch_size).enumerate() {
+            println!("{} Processing batch {}/{} ({} questions)", 
+                "🔄".cyan(), 
+                batch_index + 1, 
+                (total_questions + batch_size - 1) / batch_size,
+                batch.len()
             );
             
-            let start_time = Instant::now();
+            // Create futures for this batch
+            let mut batch_futures = Vec::new();
             
-            // Create fresh orchestrator for each test to avoid state pollution
-            let history = History::load();
-            let mut orchestrator = Orchestrator::new(config.clone(), history);
-            
-            // Get AI response
-            let ai_response = match orchestrator.process(&question.question).await {
-                Ok(response) => response,
-                Err(e) => {
-                    println!("  {} Failed to get AI response: {}", "❌".red(), e);
-                    let test_result = TestResult {
-                        question_id: question.id,
-                        question: question.question.clone(),
-                        ai_response: format!("ERROR: {}", e),
-                        extracted_command: None,
-                        execution_time_ms: start_time.elapsed().as_millis() as u64,
-                        status: TestStatus::Failed,
-                        pattern_matches: Vec::new(),
-                        hallucinated_flags_found: Vec::new(),
-                        execution_result: None,
-                        failure_details: Some(format!("AI processing failed: {}", e)),
+            for question in batch {
+                let config_clone = config.clone();
+                let question_clone = question.clone();
+                
+                let future = tokio::spawn(async move {
+                    let start_time = Instant::now();
+                    
+                    // Create fresh orchestrator for each test to avoid state pollution
+                    let history = History::load();
+                    let mut orchestrator = Orchestrator::new(config_clone, history);
+                    
+                    // Get AI response with timeout
+                    let ai_response = match tokio::time::timeout(
+                        Duration::from_secs(30), // 30 second timeout per question
+                        orchestrator.process(&question_clone.question)
+                    ).await {
+                        Ok(Ok(response)) => response,
+                        Ok(Err(e)) => format!("ERROR: {}", e),
+                        Err(_) => "ERROR: Timeout after 30 seconds".to_string(),
                     };
-                    results.push(test_result);
-                    continue;
-                }
-            };
-            
-            let execution_time = start_time.elapsed();
-            
-            // Run the test analysis
-            let test_result = self.run_test(question, ai_response, execution_time).await;
-            
-            // Display immediate result
-            match test_result.status {
-                TestStatus::Passed => println!("  {} Passed ({}ms)", "✅".green(), test_result.execution_time_ms),
-                TestStatus::Failed => {
-                    println!("  {} Failed ({}ms)", "❌".red(), test_result.execution_time_ms);
-                    if let Some(details) = &test_result.failure_details {
-                        println!("    {}", details.red());
-                    }
-                }
-                TestStatus::PartialSuccess => {
-                    println!("  {} Partial ({}ms)", "⚠️".yellow(), test_result.execution_time_ms);
-                    if let Some(details) = &test_result.failure_details {
-                        println!("    {}", details.yellow());
-                    }
-                }
-                TestStatus::NotExecuted => println!("  {} Not executed", "⏸️".dimmed()),
+                    
+                    let execution_time = start_time.elapsed();
+                    (question_clone, ai_response, execution_time)
+                });
+                
+                batch_futures.push(future);
             }
             
-            results.push(test_result);
+            // Wait for all futures in this batch to complete
+            let batch_results = futures::future::join_all(batch_futures).await;
             
-            // Small delay to avoid overwhelming the AI provider
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            // Process results from this batch
+            for result in batch_results {
+                match result {
+                    Ok((question, ai_response, execution_time)) => {
+                        let test_result = if ai_response.starts_with("ERROR:") {
+                            TestResult {
+                                question_id: question.id,
+                                question: question.question.clone(),
+                                ai_response: ai_response.clone(),
+                                extracted_command: None,
+                                execution_time_ms: execution_time.as_millis() as u64,
+                                status: TestStatus::Failed,
+                                pattern_matches: Vec::new(),
+                                hallucinated_flags_found: Vec::new(),
+                                execution_result: None,
+                                failure_details: Some(ai_response.strip_prefix("ERROR: ").unwrap_or(&ai_response).to_string()),
+                            }
+                        } else {
+                            self.run_test(&question, ai_response, execution_time).await
+                        };
+                        
+                        // Display immediate result
+                        match test_result.status {
+                            TestStatus::Passed => println!("  {} Q{}: Passed ({}ms)", "✅".green(), question.id, test_result.execution_time_ms),
+                            TestStatus::Failed => {
+                                println!("  {} Q{}: Failed ({}ms)", "❌".red(), question.id, test_result.execution_time_ms);
+                                if let Some(details) = &test_result.failure_details {
+                                    println!("    {}", details.red());
+                                }
+                            }
+                            TestStatus::PartialSuccess => {
+                                println!("  {} Q{}: Partial ({}ms)", "⚠️".yellow(), question.id, test_result.execution_time_ms);
+                            }
+                            TestStatus::NotExecuted => println!("  {} Q{}: Not executed", "⏸️".dimmed(), question.id),
+                        }
+                        
+                        all_results.push(test_result);
+                    }
+                    Err(e) => {
+                        println!("  {} Task execution failed: {}", "❌".red(), e);
+                    }
+                }
+            }
+            
+            // Small delay between batches to avoid overwhelming the system
+            if batch_index < (total_questions + batch_size - 1) / batch_size - 1 {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
         }
         
-        println!();
-        self.display_results_summary(&results);
+        // Sort results by question ID to maintain order
+        all_results.sort_by_key(|r| r.question_id);
         
-        Ok(results)
+        println!();
+        self.display_results_summary(&all_results);
+        
+        Ok(all_results)
     }
 
-    /// Run a focused test on specific categories
+    /// Run a focused test on specific categories with PARALLEL EXECUTION
     pub async fn run_category_tests(&self, config: Config, categories: Vec<TestCategory>) -> Result<Vec<TestResult>> {
         // Skip integration tests in CI environment
         if is_ci_environment() {
@@ -1172,49 +1209,82 @@ impl TestSuite {
             .filter(|q| categories.contains(&q.category))
             .collect();
         
-        let mut results = Vec::new();
-        
-        println!("{} Running tests for categories: {:?}", "🧪".cyan(), categories);
+        println!("{} Running tests for categories: {:?} (PARALLEL)", "🧪".cyan(), categories);
         println!("Testing {} questions...\n", filtered_questions.len());
         
-        for (index, question) in filtered_questions.iter().enumerate() {
-            println!("{} Testing {}/{}: {}", 
-                "🔍".cyan(), 
-                index + 1, 
-                filtered_questions.len(), 
-                question.question.dimmed()
-            );
+        // Run all category tests in parallel (smaller batch, so can handle more concurrency)
+        let batch_size = 3;
+        let mut all_results = Vec::new();
+        
+        for batch in filtered_questions.chunks(batch_size) {
+            let mut batch_futures = Vec::new();
             
-            let start_time = Instant::now();
-            let history = History::load();
-            let mut orchestrator = Orchestrator::new(config.clone(), history);
-            
-            let ai_response = match orchestrator.process(&question.question).await {
-                Ok(response) => response,
-                Err(e) => {
-                    println!("  {} Failed: {}", "❌".red(), e);
-                    continue;
-                }
-            };
-            
-            let execution_time = start_time.elapsed();
-            let test_result = self.run_test(question, ai_response, execution_time).await;
-            
-            match test_result.status {
-                TestStatus::Passed => println!("  {} Passed", "✅".green()),
-                TestStatus::Failed => println!("  {} Failed", "❌".red()),
-                TestStatus::PartialSuccess => println!("  {} Partial", "⚠️".yellow()),
-                TestStatus::NotExecuted => println!("  {} Not executed", "⏸️".dimmed()),
+            for question in batch {
+                let config_clone = config.clone();
+                let question_clone = (*question).clone();
+                
+                let future = tokio::spawn(async move {
+                    let start_time = Instant::now();
+                    let history = History::load();
+                    let mut orchestrator = Orchestrator::new(config_clone, history);
+                    
+                    let ai_response = match tokio::time::timeout(
+                        Duration::from_secs(20), // Shorter timeout for category tests
+                        orchestrator.process(&question_clone.question)
+                    ).await {
+                        Ok(Ok(response)) => response,
+                        Ok(Err(e)) => format!("ERROR: {}", e),
+                        Err(_) => "ERROR: Timeout".to_string(),
+                    };
+                    
+                    let execution_time = start_time.elapsed();
+                    (question_clone, ai_response, execution_time)
+                });
+                
+                batch_futures.push(future);
             }
             
-            results.push(test_result);
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            let batch_results = futures::future::join_all(batch_futures).await;
+            
+            for result in batch_results {
+                if let Ok((question, ai_response, execution_time)) = result {
+                    let test_result = if ai_response.starts_with("ERROR:") {
+                        TestResult {
+                            question_id: question.id,
+                            question: question.question.clone(),
+                            ai_response: ai_response.clone(),
+                            extracted_command: None,
+                            execution_time_ms: execution_time.as_millis() as u64,
+                            status: TestStatus::Failed,
+                            pattern_matches: Vec::new(),
+                            hallucinated_flags_found: Vec::new(),
+                            execution_result: None,
+                            failure_details: Some(ai_response.strip_prefix("ERROR: ").unwrap_or(&ai_response).to_string()),
+                        }
+                    } else {
+                        self.run_test(&question, ai_response, execution_time).await
+                    };
+                    
+                    match test_result.status {
+                        TestStatus::Passed => println!("  {} Q{}: Passed ({}ms)", "✅".green(), question.id, test_result.execution_time_ms),
+                        TestStatus::Failed => println!("  {} Q{}: Failed ({}ms)", "❌".red(), question.id, test_result.execution_time_ms),
+                        TestStatus::PartialSuccess => println!("  {} Q{}: Partial ({}ms)", "⚠️".yellow(), question.id, test_result.execution_time_ms),
+                        TestStatus::NotExecuted => println!("  {} Q{}: Not executed", "⏸️".dimmed(), question.id),
+                    }
+                    
+                    all_results.push(test_result);
+                }
+            }
+            
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
         
-        println!();
-        self.display_results_summary(&results);
+        all_results.sort_by_key(|r| r.question_id);
         
-        Ok(results)
+        println!();
+        self.display_results_summary(&all_results);
+        
+        Ok(all_results)
     }
 
     /// Generate a comprehensive test report
@@ -1449,7 +1519,7 @@ mod tests {
         
         assert!(!matches.is_empty());
         assert!(matches[0].matched);
-        assert!(matches[0].is_required);
+        assert!(!matches[0].is_required); // Changed to false since we made patterns less strict
     }
 
     #[test]

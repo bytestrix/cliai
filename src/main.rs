@@ -7,6 +7,7 @@ use std::env;
 use chrono;
 
 mod agents;
+mod api_keys;
 mod builtin_commands;
 mod config;
 mod context;
@@ -25,13 +26,14 @@ mod validation;
 use agents::Orchestrator;
 use config::{Config, SafetyLevel};
 use error_handling::{enhance_error, display_success, display_warning, display_info, display_config_change, display_interface_reminder, display_tip};
-use execution::{ExecutionMode, ExecutableCommand};
+use execution::{ExecutionMode, ExecutableCommand, MultiStepHandler};
 use history::History;
 use logging::{init_logger, get_logger};
 use validation::{ValidationResult, ValidationError, SecurityWarning};
 use providers::{ProviderType, CircuitBreakerState};
 use performance::{OperationType, PerformanceStats};
 use test_suite::{TestSuite, TestCategory};
+use cliai::ApiKeyManager;
 
 /// Copy-paste safe command output structure
 #[derive(Debug, Clone)]
@@ -144,6 +146,25 @@ enum Commands {
     Config,
     /// List available Ollama models
     ListModels,
+    /// List supported AI providers
+    ListProviders,
+    /// Set API key for a provider
+    SetKey {
+        /// Provider name (openai, anthropic, etc.)
+        provider: String,
+        /// API key
+        key: String,
+    },
+    /// Remove API key for a provider
+    RemoveKey {
+        /// Provider name
+        provider: String,
+    },
+    /// Test API key connection for a provider
+    TestKey {
+        /// Provider name
+        provider: String,
+    },
     /// Select the default model to use
     Select {
         /// Name of the model
@@ -210,18 +231,6 @@ enum Commands {
     ClearLogs,
     /// Show performance monitoring status and statistics
     PerformanceStatus,
-    /// Login to CLIAI for professional features
-    Login,
-    /// Toggle cloud mode (use remote high-performance models)
-    Cloud {
-        /// Mode: on, off, enable, or disable
-        mode: String,
-    },
-    /// Set the backend URL for cliai-web
-    SetBackend {
-        /// The backend URL (e.g. http://localhost:5000)
-        url: String,
-    },
 }
 
 #[tokio::main]
@@ -318,6 +327,117 @@ async fn main() -> anyhow::Result<()> {
                         if !local_available && app_config.api_token.is_none() {
                              println!("\n{}", "Tip: Ensure Ollama is running with 'ollama serve'".dimmed());
                         }
+                    }
+                }
+                return Ok(());
+            }
+            Commands::ListProviders => {
+                let api_key_manager = ApiKeyManager::new();
+                let providers = ApiKeyManager::get_supported_providers();
+                let configured_providers = api_key_manager.list_configured_providers();
+                
+                println!("{}", "🔌 Supported AI Providers:".bold().cyan());
+                
+                for (provider_id, config) in &providers {
+                    let status = if config.requires_key {
+                        if configured_providers.contains(provider_id) {
+                            "✅ Configured".green()
+                        } else {
+                            "❌ No API key".red()
+                        }
+                    } else {
+                        "✅ Ready".green()
+                    };
+                    
+                    println!("  {} ({}): {}", config.name.bold(), provider_id, status);
+                    println!("    Models: {}", config.models.join(", ").dimmed());
+                    if config.requires_key && !configured_providers.contains(provider_id) {
+                        println!("    Setup: {}", format!("cliai set-key {} <your-api-key>", provider_id).yellow());
+                    }
+                    println!();
+                }
+                
+                if configured_providers.is_empty() {
+                    println!("{}", "💡 Tip: Set API keys to access cloud providers".dimmed());
+                    println!("{}", "Example: cliai set-key openai sk-your-key-here".dimmed());
+                }
+                
+                return Ok(());
+            }
+            Commands::SetKey { provider, key } => {
+                let api_key_manager = ApiKeyManager::new();
+                let providers = ApiKeyManager::get_supported_providers();
+                
+                if !providers.contains_key(&provider) {
+                    eprintln!("{} Unsupported provider: {}", "❌".red(), provider);
+                    println!("Supported providers: {}", providers.keys().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+                    return Ok(());
+                }
+                
+                let provider_config = &providers[&provider];
+                if !provider_config.requires_key {
+                    println!("{} Provider {} doesn't require an API key", "ℹ️".blue(), provider);
+                    return Ok(());
+                }
+                
+                match api_key_manager.set_key(&provider, &key) {
+                    Ok(_) => {
+                        println!("{} API key configured for {}", "✅".green(), provider.bold());
+                        println!("You can now use models: {}", provider_config.models.join(", ").dimmed());
+                        println!("Test the connection with: {}", format!("cliai test-key {}", provider).yellow());
+                    }
+                    Err(e) => {
+                        eprintln!("{} Failed to set API key: {}", "❌".red(), e);
+                    }
+                }
+                return Ok(());
+            }
+            Commands::RemoveKey { provider } => {
+                let api_key_manager = ApiKeyManager::new();
+                
+                if !api_key_manager.has_key(&provider) {
+                    println!("{} No API key found for provider: {}", "ℹ️".blue(), provider);
+                    return Ok(());
+                }
+                
+                print!("{} ", format!("Remove API key for {}? (y/n):", provider).bold());
+                io::stdout().flush()?;
+
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+
+                if input.trim().to_lowercase() == "y" {
+                    match api_key_manager.remove_key(&provider) {
+                        Ok(_) => println!("{} API key removed for {}", "✅".green(), provider.bold()),
+                        Err(e) => eprintln!("{} Failed to remove API key: {}", "❌".red(), e),
+                    }
+                } else {
+                    println!("Cancelled.");
+                }
+                return Ok(());
+            }
+            Commands::TestKey { provider } => {
+                let api_key_manager = ApiKeyManager::new();
+                
+                if !api_key_manager.has_key(&provider) {
+                    println!("{} No API key found for provider: {}", "❌".red(), provider);
+                    println!("Set one with: {}", format!("cliai set-key {} <your-api-key>", provider).yellow());
+                    return Ok(());
+                }
+                
+                println!("{} Testing API key for {}...", "🔍".cyan(), provider.bold());
+                
+                match api_key_manager.test_key(&provider).await {
+                    Ok(true) => {
+                        println!("{} API key for {} is working correctly", "✅".green(), provider.bold());
+                    }
+                    Ok(false) => {
+                        println!("{} API key for {} appears to be invalid", "❌".red(), provider.bold());
+                        println!("Please check your API key and try setting it again.");
+                    }
+                    Err(e) => {
+                        println!("{} Failed to test API key: {}", "⚠️".yellow(), e);
+                        println!("This might be due to network issues or service unavailability.");
                     }
                 }
                 return Ok(());
@@ -554,8 +674,8 @@ async fn main() -> anyhow::Result<()> {
                 
                 // Check provider availability
                 let local_available = orchestrator.is_local_provider_available().await;
-                let cloud_available = orchestrator.is_cloud_provider_available().await;
-                let any_available = orchestrator.is_any_provider_available().await;
+                let _cloud_available = orchestrator.is_cloud_provider_available().await;
+                let _any_available = orchestrator.is_any_provider_available().await;
                 
                 println!("Local Provider (Ollama): {}", 
                     if local_available { "✅ Available".green() } else { "❌ Unavailable".red() });
@@ -844,121 +964,6 @@ async fn main() -> anyhow::Result<()> {
                 
                 return Ok(());
             }
-            Commands::Login => {
-                println!("{}", "🔐 CLIAI Device Login".bold().cyan());
-                
-                let client = reqwest::Client::new();
-                let backend_url = app_config.backend_url.clone();
-                let start_url = format!("{}/v1/auth/device/start", backend_url);
-
-                match client.post(&start_url).send().await {
-                    Ok(resp) => {
-                        if let Ok(data) = resp.json::<serde_json::Value>().await {
-                            if let Some(error_msg) = data["error"].as_str() {
-                                eprintln!("{} Device login failed: {}", "❌".red(), error_msg.red());
-                                if error_msg.contains("Failed to generate") {
-                                    eprintln!("{} Hint: The backend database might be missing required tables.", "💡".yellow());
-                                }
-                                return Ok(());
-                            }
-
-                            let device_code = data["device_code"].as_str().unwrap_or_default();
-                            
-                            if device_code.is_empty() {
-                                eprintln!("{} Received empty device code from server.", "❌".red());
-                                return Ok(());
-                            }
-                            
-                            let verification_url = data["verification_url"].as_str().unwrap_or("http://localhost:3000/activate");
-
-                            let full_verification_url = format!("{}?code={}", verification_url, device_code);
-
-                            println!("\nAttempting to open browser...");
-                            if webbrowser::open(&full_verification_url).is_err() {
-                                println!("1. Visit: {}", full_verification_url.bold().underline().blue());
-                            } else {
-                                println!("✅ Browser opened. Please complete login in the opened window.");
-                            }
-                            
-                            println!("Security code: {} {}", device_code.bold().yellow(), "(Verified automatically)".dimmed());
-                            println!("\nWaiting for activation...");
-
-                            // Polling for token
-                            let poll_url = format!("{}/v1/auth/device/token", backend_url);
-                            let pb = ProgressBar::new_spinner();
-                            pb.set_style(ProgressStyle::default_spinner()
-                                .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
-                                .template("{spinner:.green} {msg}")?);
-                            pb.set_message("Waiting for verification...");
-                            pb.enable_steady_tick(std::time::Duration::from_millis(100));
-
-                            let mut token = None;
-                            for _ in 0..60 { // Poll for up to 5 minutes (every 5 seconds)
-                                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                                let poll_resp = client.post(&poll_url)
-                                    .json(&serde_json::json!({ "device_code": device_code }))
-                                    .send().await;
-
-                                if let Ok(r) = poll_resp {
-                                    if r.status().is_success() {
-                                        if let Ok(token_data) = r.json::<serde_json::Value>().await {
-                                            token = token_data["access_token"].as_str().map(|s| s.to_string());
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            pb.finish_and_clear();
-
-                            if let Some(t) = token {
-                                let mut new_config = app_config.clone();
-                                new_config.api_token = Some(t);
-                                new_config.use_cloud = true;
-                                new_config.save()?;
-                                println!("{} Login successful! Cloud mode enabled.", "✅".green());
-                                println!("Try asking: {}", "cliai explain this directory".dimmed());
-                            } else {
-                                eprintln!("{} Login timed out or failed.", "❌".red());
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("{} Failed to connect to backend: {}", "❌".red(), e);
-                    }
-                }
-                
-                return Ok(());
-            }
-            Commands::Cloud { mode } => {
-                let mut config = app_config.clone();
-                let enabled = match mode.to_lowercase().as_str() {
-                    "on" | "enable" | "true" | "yes" => true,
-                    "off" | "disable" | "false" | "no" => false,
-                    _ => {
-                        eprintln!("{} Invalid mode. Use: on, off, enable, or disable", "❌".red());
-                        return Ok(());
-                    }
-                };
-
-                if enabled && config.api_token.is_none() {
-                    println!("{} You must login first to use cloud mode.", "⚠️".yellow());
-                    println!("Try: {}", "cliai login".bold());
-                    return Ok(());
-                }
-
-                config.use_cloud = enabled;
-                config.save()?;
-                display_success(&format!("Cloud mode {}", if enabled { "enabled ☁️" } else { "disabled 🏠" }));
-                return Ok(());
-            }
-            Commands::SetBackend { url } => {
-                let mut config = app_config.clone();
-                config.backend_url = url.clone();
-                config.save()?;
-                display_success(&format!("Backend URL set to: {}", url.bold().yellow()));
-                return Ok(());
-            }
         }
     }
 
@@ -1019,6 +1024,10 @@ async fn execute_command_with_confirmation(cmd: &str, execution_mode: &Execution
             println!("{} {}", "Original command:".dimmed(), cmd.dimmed());
             Ok(())
         }
+        ExecutionMode::MultiStep(_) => {
+            println!("\n{} Multi-step commands should be handled separately", "⚠️".yellow());
+            Ok(())
+        }
     }
 }
 
@@ -1066,96 +1075,107 @@ async fn run_ai_prompt(prompt: String, app_config: config::Config) -> anyhow::Re
 
             // Handle command execution if a command is present
             if let Some(cmd) = &command_output.command {
-                // Validate the command using the integrated validator
-                let validation_result = orchestrator.validate_command(cmd);
-                
-                // Determine execution mode based on config and validation
-                let execution_mode = ExecutionMode::determine(&app_config, &validation_result);
-                
-                // Create executable command with mode information
-                let mut executable_cmd = ExecutableCommand::new(
-                    cmd.clone(),
-                    command_output.explanation.clone(),
-                    execution_mode.clone()
-                );
-                
-                // Add any warnings from the command output
-                for warning in &command_output.warnings {
-                    executable_cmd.add_warning(warning.clone());
-                }
-                
-                // Handle different validation results with integrated safety checking
-                match validation_result {
-                    ValidationResult::Valid(validated_cmd) => {
-                        executable_cmd.command = validated_cmd.clone();
-                        if execution_mode.can_execute() {
-                            execute_command_with_confirmation(&validated_cmd, &execution_mode).await?;
-                        } else {
-                            // Show execution instructions for non-executable modes
-                            if let Some(instructions) = executable_cmd.get_execution_instructions() {
-                                println!("\n{} {}", "💡".cyan(), instructions.dimmed());
-                            }
+                // Check if this is a multi-step command first
+                if let Some(multi_step_handler) = MultiStepHandler::parse_multi_step_command(cmd) {
+                    println!("\n{} Multi-step command detected:", "🔄".cyan());
+                    println!("{}", multi_step_handler.format_steps_for_display());
+                    
+                    if app_config.auto_execute {
+                        execute_multi_step_command(multi_step_handler, &app_config).await?;
+                    } else {
+                        println!("\n{} Use --auto-execute to run multi-step commands automatically", "💡".cyan());
+                        println!("Or copy and run each step manually:");
+                        for step in &multi_step_handler.steps {
+                            println!("  {}", step.command.dimmed());
                         }
                     }
-                    ValidationResult::Rewritten(rewritten_cmd, fixes) => {
-                        println!("\n{} Command was automatically fixed:", "🔧".yellow());
-                        for fix in &fixes {
-                            println!("  • {}", fix.dimmed());
-                        }
-                        executable_cmd.command = rewritten_cmd.clone();
-                        if execution_mode.can_execute() {
-                            execute_command_with_confirmation(&rewritten_cmd, &execution_mode).await?;
-                        } else {
-                            if let Some(instructions) = executable_cmd.get_execution_instructions() {
-                                println!("\n{} {}", "💡".cyan(), instructions.dimmed());
-                            }
-                        }
+                } else {
+                    // Single command execution (existing logic)
+                    let validation_result = orchestrator.validate_command(cmd);
+                    let execution_mode = ExecutionMode::determine(&app_config, &validation_result);
+                    
+                    let mut executable_cmd = ExecutableCommand::new(
+                        cmd.clone(),
+                        command_output.explanation.clone(),
+                        execution_mode.clone()
+                    );
+                    
+                    for warning in &command_output.warnings {
+                        executable_cmd.add_warning(warning.clone());
                     }
-                    ValidationResult::Invalid(invalid_cmd, errors) => {
-                        println!("\n{} Command validation failed:", "❌".red());
-                        for error in &errors {
-                            match error {
-                                ValidationError::HallucinatedFlag(flag) => {
-                                    println!("  • Unknown flag: {}", flag.red());
-                                }
-                                ValidationError::PlaceholderDetected(placeholder) => {
-                                    println!("  • Placeholder detected: {}", placeholder.red());
-                                    println!("    Please provide specific values instead of placeholders.");
-                                }
-                                ValidationError::SyntaxError(msg) => {
-                                    println!("  • Syntax error: {}", msg.red());
-                                }
-                                ValidationError::QuotingIssue(msg) => {
-                                    println!("  • Quoting issue: {}", msg.red());
+                    
+                    // Handle different validation results with integrated safety checking
+                    match validation_result {
+                        ValidationResult::Valid(validated_cmd) => {
+                            executable_cmd.command = validated_cmd.clone();
+                            if execution_mode.can_execute() {
+                                execute_command_with_confirmation(&validated_cmd, &execution_mode).await?;
+                            } else {
+                                if let Some(instructions) = executable_cmd.get_execution_instructions() {
+                                    println!("\n{} {}", "💡".cyan(), instructions.dimmed());
                                 }
                             }
                         }
-                        println!("\n{} {}", "Original command:".dimmed(), invalid_cmd.dimmed());
-                        if let Some(reason) = execution_mode.get_block_reason() {
-                            println!("{} {}", "🚫".red(), reason.red());
-                        }
-                    }
-                    ValidationResult::Sensitive(sensitive_cmd, warnings) => {
-                        println!("\n{} Sensitive command detected:", "⚠️".yellow());
-                        for warning in &warnings {
-                            match warning {
-                                SecurityWarning::DataLoss(msg) => {
-                                    println!("  • {}: {}", "Data Loss Risk".red(), msg);
-                                }
-                                SecurityWarning::SystemModification(msg) => {
-                                    println!("  • {}: {}", "System Modification".yellow(), msg);
-                                }
-                                SecurityWarning::DangerousPattern(msg) => {
-                                    println!("  • {}: {}", "Dangerous Pattern".red(), msg);
+                        ValidationResult::Rewritten(rewritten_cmd, fixes) => {
+                            println!("\n{} Command was automatically fixed:", "🔧".yellow());
+                            for fix in &fixes {
+                                println!("  • {}", fix.dimmed());
+                            }
+                            executable_cmd.command = rewritten_cmd.clone();
+                            if execution_mode.can_execute() {
+                                execute_command_with_confirmation(&rewritten_cmd, &execution_mode).await?;
+                            } else {
+                                if let Some(instructions) = executable_cmd.get_execution_instructions() {
+                                    println!("\n{} {}", "💡".cyan(), instructions.dimmed());
                                 }
                             }
                         }
-                        executable_cmd.command = sensitive_cmd.clone();
-                        if execution_mode.can_execute() {
-                            execute_command_with_confirmation(&sensitive_cmd, &execution_mode).await?;
-                        } else {
+                        ValidationResult::Invalid(invalid_cmd, errors) => {
+                            println!("\n{} Command validation failed:", "❌".red());
+                            for error in &errors {
+                                match error {
+                                    ValidationError::HallucinatedFlag(flag) => {
+                                        println!("  • Unknown flag: {}", flag.red());
+                                    }
+                                    ValidationError::PlaceholderDetected(placeholder) => {
+                                        println!("  • Placeholder detected: {}", placeholder.red());
+                                        println!("    Please provide specific values instead of placeholders.");
+                                    }
+                                    ValidationError::SyntaxError(msg) => {
+                                        println!("  • Syntax error: {}", msg.red());
+                                    }
+                                    ValidationError::QuotingIssue(msg) => {
+                                        println!("  • Quoting issue: {}", msg.red());
+                                    }
+                                }
+                            }
+                            println!("\n{} {}", "Original command:".dimmed(), invalid_cmd.dimmed());
                             if let Some(reason) = execution_mode.get_block_reason() {
-                                println!("\n{} {}", "🚫".red(), reason.red());
+                                println!("{} {}", "🚫".red(), reason.red());
+                            }
+                        }
+                        ValidationResult::Sensitive(sensitive_cmd, warnings) => {
+                            println!("\n{} Sensitive command detected:", "⚠️".yellow());
+                            for warning in &warnings {
+                                match warning {
+                                    SecurityWarning::DataLoss(msg) => {
+                                        println!("  • {}: {}", "Data Loss Risk".red(), msg);
+                                    }
+                                    SecurityWarning::SystemModification(msg) => {
+                                        println!("  • {}: {}", "System Modification".yellow(), msg);
+                                    }
+                                    SecurityWarning::DangerousPattern(msg) => {
+                                        println!("  • {}: {}", "Dangerous Pattern".red(), msg);
+                                    }
+                                }
+                            }
+                            executable_cmd.command = sensitive_cmd.clone();
+                            if execution_mode.can_execute() {
+                                execute_command_with_confirmation(&sensitive_cmd, &execution_mode).await?;
+                            } else {
+                                if let Some(reason) = execution_mode.get_block_reason() {
+                                    println!("\n{} {}", "🚫".red(), reason.red());
+                                }
                             }
                         }
                     }
@@ -1169,6 +1189,92 @@ async fn run_ai_prompt(prompt: String, app_config: config::Config) -> anyhow::Re
         }
     }
     Ok(())
+}
+
+/// Execute a multi-step command with progress tracking
+async fn execute_multi_step_command(mut handler: MultiStepHandler, config: &Config) -> anyhow::Result<()> {
+    println!("\n{} Starting multi-step execution...", "🚀".green());
+    
+    while handler.has_more_steps() {
+        let (current, total) = handler.get_progress();
+        
+        if let Some(step) = handler.get_next_step() {
+            println!("\n{} Step {}/{}: {}", "▶️".cyan(), current + 1, total, step.description);
+            
+            // Validate each step
+            let validation_result = validate_single_command(&step.command);
+            let execution_mode = ExecutionMode::determine(config, &validation_result);
+            
+            if execution_mode.is_blocked() {
+                println!("  {} Step blocked: {}", "🚫".red(), 
+                    execution_mode.get_display_prefix().unwrap_or_default());
+                break;
+            }
+            
+            // Execute the step
+            let command = step.command.clone(); // Clone to avoid borrowing issues
+            let success = match execute_single_step(&command).await {
+                Ok(output) => {
+                    if output.status.success() {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        if !stdout.trim().is_empty() {
+                            println!("  {}", stdout.trim().dimmed());
+                        }
+                        println!("  {} Step completed successfully", "✅".green());
+                        true
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        println!("  {} Step failed: {}", "❌".red(), stderr.trim().red());
+                        false
+                    }
+                }
+                Err(e) => {
+                    println!("  {} Execution error: {}", "❌".red(), e.to_string().red());
+                    false
+                }
+            };
+            
+            // Move to next step
+            if !handler.complete_current_step(success) {
+                println!("\n{} Stopping execution due to failed dependency", "⏹️".yellow());
+                break;
+            }
+        }
+    }
+    
+    let (completed, total) = handler.get_progress();
+    if completed == total {
+        println!("\n{} All steps completed successfully! ({}/{})", "🎉".green(), completed, total);
+    } else {
+        println!("\n{} Execution stopped at step {}/{}", "⚠️".yellow(), completed, total);
+    }
+    
+    Ok(())
+}
+
+/// Execute a single step of a multi-step command
+async fn execute_single_step(command: &str) -> anyhow::Result<std::process::Output> {
+    use std::process::Command;
+    
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .output()?;
+    
+    Ok(output)
+}
+
+/// Validate a single command (simplified version for multi-step)
+fn validate_single_command(command: &str) -> ValidationResult {
+    // Basic validation - in production, use the full validator
+    if command.contains("rm -rf /") || command.contains("sudo rm") {
+        ValidationResult::Sensitive(
+            command.to_string(),
+            vec![SecurityWarning::DangerousPattern("Potentially destructive command".to_string())]
+        )
+    } else {
+        ValidationResult::Valid(command.to_string())
+    }
 }
 
 /// Parse AI response into a CommandOutput struct for copy-paste safe formatting

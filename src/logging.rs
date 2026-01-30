@@ -66,6 +66,7 @@ pub struct LogContext {
     pub success: Option<bool>,
 }
 
+#[allow(dead_code)]
 impl LogContext {
     /// Create a new empty log context
     pub fn new() -> Self {
@@ -137,6 +138,7 @@ impl LogContext {
     }
 }
 
+#[allow(dead_code)]
 impl PrivacyLogger {
     /// Create a new privacy logger instance
     pub fn new() -> Result<Self> {

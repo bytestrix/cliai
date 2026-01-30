@@ -15,6 +15,7 @@ pub struct ContextGatherer {
 }
 
 /// A whitelisted context command with metadata
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ContextCommand {
     pub command: String,
@@ -51,6 +52,7 @@ pub struct SystemContext {
     pub total_duration_ms: u64,
 }
 
+#[allow(dead_code)]
 impl ContextGatherer {
     /// Create a new context gatherer with default whitelisted commands
     pub fn new(config: &Config) -> Self {
@@ -123,40 +125,74 @@ impl ContextGatherer {
         }
     }
     
-    /// Gather context information safely using whitelisted commands
+    /// Gather context information safely using whitelisted commands (PARALLEL EXECUTION)
     pub async fn gather_context(&self, requested_commands: &[String]) -> SystemContext {
         let start_time = Instant::now();
-        let mut results = Vec::new();
         
         // Always include working directory
         let working_directory = std::env::current_dir()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| "unknown".to_string());
         
-        // Execute requested commands if they are whitelisted
-        for cmd_id in requested_commands {
-            if let Some(context_cmd) = self.whitelisted_commands.get(cmd_id) {
-                let result = self.execute_safe_command(context_cmd).await;
-                results.push(result);
-            } else {
-                // Log attempt to use non-whitelisted command
-                results.push(ContextResult {
-                    command: cmd_id.clone(),
-                    output: "Command not whitelisted for context gathering".to_string(),
-                    success: false,
-                    duration_ms: 0,
-                    category: "blocked".to_string(),
-                });
+        // Collect commands to execute
+        let mut commands_to_execute = Vec::new();
+        
+        if requested_commands.is_empty() {
+            // Default basic commands
+            let basic_commands = ["pwd", "whoami", "uname"];
+            for cmd_id in &basic_commands {
+                if self.whitelisted_commands.contains_key(*cmd_id) {
+                    commands_to_execute.push(cmd_id.to_string());
+                }
+            }
+        } else {
+            // Use requested commands
+            for cmd_id in requested_commands {
+                if self.whitelisted_commands.contains_key(cmd_id) {
+                    commands_to_execute.push(cmd_id.clone());
+                } else {
+                    // Add blocked command result immediately
+                    commands_to_execute.push(format!("blocked:{}", cmd_id));
+                }
             }
         }
         
-        // If no specific commands requested, gather basic context
-        if requested_commands.is_empty() {
-            let basic_commands = ["pwd", "whoami", "uname"];
-            for cmd_id in &basic_commands {
-                if let Some(context_cmd) = self.whitelisted_commands.get(*cmd_id) {
-                    let result = self.execute_safe_command(context_cmd).await;
-                    results.push(result);
+        // Execute all commands in parallel
+        let mut futures = Vec::new();
+        for cmd_id in commands_to_execute {
+            if cmd_id.starts_with("blocked:") {
+                let blocked_cmd = cmd_id.strip_prefix("blocked:").unwrap().to_string();
+                futures.push(tokio::spawn(async move {
+                    ContextResult {
+                        command: blocked_cmd.clone(),
+                        output: "Command not whitelisted for context gathering".to_string(),
+                        success: false,
+                        duration_ms: 0,
+                        category: "blocked".to_string(),
+                    }
+                }));
+            } else if let Some(context_cmd) = self.whitelisted_commands.get(&cmd_id) {
+                let context_cmd_clone = context_cmd.clone();
+                let self_clone = self.clone();
+                futures.push(tokio::spawn(async move {
+                    self_clone.execute_safe_command(&context_cmd_clone).await
+                }));
+            }
+        }
+        
+        // Wait for all commands to complete
+        let mut results = Vec::new();
+        for future in futures {
+            match future.await {
+                Ok(result) => results.push(result),
+                Err(e) => {
+                    results.push(ContextResult {
+                        command: "task_error".to_string(),
+                        output: format!("Task execution failed: {}", e),
+                        success: false,
+                        duration_ms: 0,
+                        category: "error".to_string(),
+                    });
                 }
             }
         }

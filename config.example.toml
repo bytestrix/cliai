@@ -1,0 +1,43 @@
+# CLIAI Configuration Example
+# Copy this file to ~/.config/cliai/config.toml and customize
+
+# Default model to use
+model = "mistral"
+
+# AI provider to use (ollama, openai, anthropic)
+provider = "ollama"
+
+# Execution settings
+auto_execute = false
+dry_run = false
+safety_level = "Medium"  # Low, Medium, High
+
+# Timeouts (in milliseconds)
+context_timeout = 5000
+ai_timeout = 120000
+
+# Ollama settings (for local AI)
+ollama_url = "http://localhost:11434"
+
+# Custom command prefix (optional)
+# prefix = "ai"
+
+# API Keys are stored securely in your system keyring
+# Set them using: cliai set-key <provider> <key>
+# Examples:
+#   cliai set-key openai sk-your-openai-key-here
+#   cliai set-key anthropic your-anthropic-key-here
+
+# Supported providers and their models:
+# 
+# Ollama (Local - Free):
+#   - mistral, llama2, codellama, llama3, gemma
+#   - Requires: ollama installed and running
+#
+# OpenAI (API Key Required):
+#   - gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4o
+#   - Get key from: https://platform.openai.com/api-keys
+#
+# Anthropic (API Key Required):
+#   - claude-3-haiku, claude-3-sonnet, claude-3-opus
+#   - Get key from: https://console.anthropic.com/

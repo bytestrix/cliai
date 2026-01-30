@@ -25,6 +25,7 @@ pub enum ErrorType {
     General,
 }
 
+#[allow(dead_code)]
 impl UserFriendlyError {
     pub fn new(error_type: ErrorType, message: String) -> Self {
         Self {
@@ -380,11 +381,13 @@ pub fn display_config_change(setting: &str, old_value: &str, new_value: &str) {
 }
 
 /// Display progress information during operations
+#[allow(dead_code)]
 pub fn display_progress(message: &str) {
     println!("{} {}", "⏳".cyan(), message.dimmed());
 }
 
 /// Display completion confirmation
+#[allow(dead_code)]
 pub fn display_completion(message: &str) {
     println!("{} {}", "✨".green(), message.green());
 }
@@ -395,6 +398,7 @@ pub fn display_tip(message: &str) {
 }
 
 /// Display system status information
+#[allow(dead_code)]
 pub fn display_status(component: &str, status: &str, is_healthy: bool) {
     let icon = if is_healthy { "✅" } else { "❌" };
     let status_color = if is_healthy { status.green() } else { status.red() };
@@ -402,6 +406,7 @@ pub fn display_status(component: &str, status: &str, is_healthy: bool) {
 }
 
 /// Display command suggestions
+#[allow(dead_code)]
 pub fn display_command_suggestion(description: &str, command: &str) {
     println!("{} {}: {}", "💡".cyan(), description, command.green());
 }
@@ -416,6 +421,7 @@ pub fn display_interface_reminder() {
 }
 
 /// Display terminal environment compatibility message
+#[allow(dead_code)]
 pub fn display_terminal_compatibility() {
     println!("{} CLIAI works consistently across all terminal environments", "✅".green());
     println!("   Tested with: bash, zsh, fish, PowerShell, and more");

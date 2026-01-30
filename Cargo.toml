@@ -3,11 +3,11 @@ name = "cliai"
 version = "0.1.0"
 edition = "2021"
 authors = ["Byte Strix <contact@bytestrix.com>"]
-description = "A powerful CLI assistant powered by local AI (Ollama)"
+description = "A completely free and open-source CLI assistant powered by AI - use your own API keys or run locally"
 homepage = "https://github.com/cliai-team/cliai"
 repository = "https://github.com/cliai-team/cliai"
 license = "MIT"
-keywords = ["cli", "ai", "assistant", "ollama", "terminal"]
+keywords = ["cli", "ai", "assistant", "openai", "anthropic", "ollama", "terminal", "free"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 exclude = [
@@ -44,6 +44,10 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.10"
 async-trait = "0.1"
 webbrowser = "0.8"
+keyring = "2.3"
+base64 = "0.22"
+toml = "0.8"
+futures = "0.3"
 
 [dev-dependencies]
 tempfile = "3.8"
@@ -74,9 +78,9 @@ maintainer = "CLIAI Team <contact@cliai.com>"
 copyright = "2024, CLIAI Team <contact@cliai.com>"
 license-file = ["LICENSE", "4"]
 extended-description = """\
-CLIAI is a command-line AI assistant that helps you with terminal commands, \
-system administration, and general questions. It is built for local-first AI \
-(via Ollama), ensuring maximum privacy and offline capability."""
+CLIAI is a completely free and open-source command-line AI assistant that helps you \
+with terminal commands, system administration, and general questions. Use your own \
+API keys (OpenAI, Anthropic, etc.) or run locally with Ollama for maximum privacy."""
 depends = "$auto"
 section = "utils"
 priority = "optional"

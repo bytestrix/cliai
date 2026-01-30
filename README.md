@@ -2,11 +2,13 @@
 
 **Your intelligent CLI assistant powered by AI**
 
-CLIAI is a command-line AI assistant that helps you with terminal commands, system administration, and general questions. It is built for local-first AI (via Ollama), ensuring maximum privacy and offline capability. Professional cloud features are available via subscription.
+CLIAI is a completely free and open-source command-line AI assistant that helps you with terminal commands, system administration, and general questions. Use your own API keys (OpenAI, Anthropic, etc.) or run locally with Ollama for maximum privacy.
 
 ## ✨ Features
 
 - **🔒 Privacy-First**: Local AI processing with Ollama - your data never leaves your machine
+- **🔑 Bring Your Own Key**: Use your own OpenAI, Anthropic, or other LLM API keys
+- **🆓 Completely Free**: No subscriptions, no hidden costs - 100% open source
 - **🛡️ Safety-Focused**: Multi-level command validation and safety checks
 - **⚡ Fast & Reliable**: Built-in performance monitoring and circuit breakers
 - **🎯 Smart Command Generation**: Context-aware command suggestions with explanations
@@ -85,19 +87,37 @@ sudo cp target/release/cliai /usr/local/bin/
 
 ### Setup
 
-1. **Install Ollama** (for local AI):
-```bash
-# Install Ollama
-curl -fsSL https://ollama.ai/install.sh | sh
+1. **Choose your AI provider**:
 
-# Pull a model (recommended: mistral or llama2)
-ollama pull mistral
-```
+   **Option A: Local AI (Ollama - Free & Private)**
+   ```bash
+   # Install Ollama
+   curl -fsSL https://ollama.ai/install.sh | sh
+   
+   # Pull a model (recommended: mistral or llama2)
+   ollama pull mistral
+   ```
+
+   **Option B: Cloud AI (Your API Keys)**
+   ```bash
+   # Set your OpenAI API key
+   cliai set-key openai sk-your-openai-key-here
+   
+   # Or use Anthropic Claude
+   cliai set-key anthropic your-anthropic-key-here
+   
+   # Or other supported providers
+   cliai list-providers  # See all supported providers
+   ```
 
 2. **Configure CLIAI**:
 ```bash
 # Set your preferred model
-cliai select mistral
+cliai select mistral              # For Ollama
+# or
+cliai select gpt-4               # For OpenAI
+# or  
+cliai select claude-3-sonnet     # For Anthropic
 
 # Optional: Set a custom prefix
 cliai set-prefix ai
@@ -127,8 +147,16 @@ cliai "compress this folder"
 # Configuration
 cliai config                    # Show current settings
 cliai list-models              # List available models
+cliai list-providers           # List supported AI providers
 cliai select <model>           # Switch models
+cliai set-key <provider> <key> # Set API key for provider
 cliai clear                    # Clear chat history
+
+# API Key Management
+cliai set-key openai sk-...    # Set OpenAI API key
+cliai set-key anthropic ...    # Set Anthropic API key
+cliai remove-key <provider>    # Remove API key
+cliai test-key <provider>      # Test API key connection
 
 # Safety & Execution
 cliai auto-execute --enable    # Enable auto-execution for safe commands
@@ -136,14 +164,9 @@ cliai dry-run --enable         # Preview commands without executing
 cliai safety-level high       # Set safety level (low/medium/high)
 
 # Monitoring
-cliai provider-status          # Check local AI status
+cliai provider-status          # Check AI provider status
 cliai performance-status       # View performance metrics
 cliai test                     # Run comprehensive test suite
-
-# Professional Features
-cliai login                    # Login for professional features
-cliai cloud on/off             # Toggle cloud vs. local
-cliai set-backend <url>        # Set professional server URL
 ```
 
 ### Custom Prefix
@@ -199,12 +222,18 @@ CLIAI follows a modular architecture designed for reliability and extensibility:
 
 ### AI Provider System
 
-CLIAI is designed with a local-first architecture:
+CLIAI supports multiple AI providers for maximum flexibility:
 
-1. **Local Ollama** (Primary): Privacy-focused, offline capable.
-2. **Pro Cloud** (Subscription): Secure access to professional models via the CLIAI platform (requires `cliai login`).
+1. **Local Ollama** (Free & Private): Complete privacy, offline capable
+2. **OpenAI** (Your API Key): GPT-3.5, GPT-4, and other OpenAI models
+3. **Anthropic** (Your API Key): Claude models for advanced reasoning
+4. **Other Providers**: Additional providers can be easily added
 
-Users cannot set their own cloud API keys. This ensures a consistent experience and protects the platform's sustainability.
+**Supported Providers:**
+- Ollama (local)
+- OpenAI (gpt-3.5-turbo, gpt-4, gpt-4-turbo)
+- Anthropic (claude-3-sonnet, claude-3-haiku, claude-3-opus)
+- More providers coming soon!
 
 ## 🛡️ Security & Privacy
 
@@ -265,28 +294,35 @@ CLIAI stores configuration in `~/.config/cliai/config.toml`:
 
 ```toml
 model = "mistral"
+provider = "ollama"  # or "openai", "anthropic"
 auto_execute = false
 dry_run = false
 safety_level = "Medium"
 context_timeout = 5000
 ollama_url = "http://localhost:11434"
 prefix = "cliai"
+
+# API Keys (stored securely)
+[api_keys]
+# Keys are encrypted and stored separately for security
 ```
 
-### Professional Features
+### API Key Management
 
-To access premium AI models and cloud features:
+CLIAI securely stores your API keys using your system's keyring:
 
 ```bash
-cliai login
+# Set API keys
+cliai set-key openai sk-your-key-here
+cliai set-key anthropic your-anthropic-key
+
+# Test connections
+cliai test-key openai
+cliai test-key anthropic
+
+# Remove keys
+cliai remove-key openai
 ```
-
-This will open your browser to authenticate and manage your CLIAI Pro subscription, which includes:
-
-- **Premium AI Models** - GPT-4, Claude, Gemini access
-- **Cloud Sync** - History and settings across devices  
-- **Team Features** - Shared configurations and analytics
-- **Priority Support** - Direct access to the CLIAI team
 
 ## 🔧 Development
 
@@ -359,7 +395,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [https://cliai-team.github.io/cliai/](https://cliai-team.github.io/cliai/)
 - **Issues**: [GitHub Issues](https://github.com/cliai-team/cliai/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/cliai-team/cliai/discussions)
 - **Wiki**: [GitHub Wiki](https://github.com/cliai-team/cliai/wiki)

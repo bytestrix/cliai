@@ -50,6 +50,7 @@ impl OperationType {
 }
 
 /// Performance measurement result
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct PerformanceMeasurement {
     pub operation_type: OperationType,
@@ -60,6 +61,7 @@ pub struct PerformanceMeasurement {
     pub timestamp: Instant,
 }
 
+#[allow(dead_code)]
 impl PerformanceMeasurement {
     pub fn new(operation_type: OperationType, duration: Duration, target: Duration, success: bool) -> Self {
         Self {
@@ -120,6 +122,7 @@ pub struct PerformanceMonitor {
     max_measurements: usize,
 }
 
+#[allow(dead_code)]
 impl PerformanceMonitor {
     /// Create a new performance monitor
     pub fn new() -> Self {
@@ -367,6 +370,7 @@ impl PerformanceMonitor {
 }
 
 /// Performance statistics for a specific operation type
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct PerformanceStats {
     pub operation_type: OperationType,
@@ -408,6 +412,7 @@ impl PerformanceStats {
 }
 
 /// System-wide performance summary
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct SystemPerformanceSummary {
     pub stats: HashMap<OperationType, PerformanceStats>,
@@ -422,6 +427,7 @@ pub struct TimeoutHandler {
     start_time: Instant,
 }
 
+#[allow(dead_code)]
 impl TimeoutHandler {
     /// Create a new timeout handler
     pub fn new(total_timeout: Duration) -> Self {
@@ -469,6 +475,7 @@ impl TimeoutHandler {
 
 /// Graceful degradation strategies
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum DegradationStrategy {
     SkipOperation,
     UseCache,
@@ -478,10 +485,12 @@ pub enum DegradationStrategy {
 }
 
 /// Graceful degradation manager
+#[allow(dead_code)]
 pub struct DegradationManager {
     strategies: HashMap<OperationType, Vec<DegradationStrategy>>,
 }
 
+#[allow(dead_code)]
 impl DegradationManager {
     /// Create a new degradation manager with default strategies
     pub fn new() -> Self {

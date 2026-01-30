@@ -548,7 +548,7 @@ Original request: {}",
         );
         
         // Log performance if target was exceeded
-        let target = OperationType::CommandValidation.get_target_duration(
+        let _target = OperationType::CommandValidation.get_target_duration(
             self.provider_manager.get_performance_monitor().get_targets()
         );
         /*

@@ -1,10 +1,11 @@
 use regex::Regex;
 use std::collections::HashMap;
 use anyhow::{Result, anyhow};
+use serde::{Deserialize, Serialize};
 use crate::quoting::QuotingCorrector;
 
 /// Validation result for a command
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationResult {
     /// Command is valid and safe to execute
     Valid(String),
@@ -17,7 +18,8 @@ pub enum ValidationResult {
 }
 
 /// Types of validation errors
-#[derive(Debug, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationError {
     /// Command contains hallucinated/non-existent flags
     HallucinatedFlag(String),
@@ -30,7 +32,8 @@ pub enum ValidationError {
 }
 
 /// Security warnings for sensitive commands
-#[derive(Debug, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SecurityWarning {
     /// Command could cause data loss
     DataLoss(String),
@@ -212,6 +215,7 @@ pub struct SafetyChecker {
     shell_parser: ShellParser,
 }
 
+#[allow(dead_code)]
 impl SafetyChecker {
     pub fn new() -> Self {
         let sensitive_patterns = vec![
@@ -478,6 +482,7 @@ pub struct DefaultCommandValidator {
     quoting_corrector: QuotingCorrector,
 }
 
+#[allow(dead_code)]
 impl DefaultCommandValidator {
     pub fn new() -> Self {
         let mut common_rewrites = HashMap::new();

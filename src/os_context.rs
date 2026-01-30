@@ -58,6 +58,7 @@ pub struct OSContext {
     pub architecture: String,
 }
 
+#[allow(dead_code)]
 impl OSContext {
     /// Detect the operating system and create OS context
     /// This is cached for performance after first detection
@@ -398,10 +399,12 @@ impl OSContext {
 
 /// Arch Linux specific commands and functionality
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ArchCommands {
     pub aur_helper: Option<String>,
 }
 
+#[allow(dead_code)]
 impl ArchCommands {
     pub fn new() -> Self {
         let aur_helper = Self::detect_aur_helper();

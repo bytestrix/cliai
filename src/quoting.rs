@@ -2,8 +2,6 @@ use regex::Regex;
 
 /// Quoting and escaping utilities for shell commands
 pub struct QuotingCorrector {
-    /// Shell metacharacters that need escaping or quoting
-    shell_metacharacters: Vec<char>,
 }
 
 /// Result of quoting analysis
@@ -16,6 +14,7 @@ pub struct QuotingAnalysis {
 }
 
 /// Types of quoting issues
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum QuotingIssue {
     /// Unquoted path with spaces
@@ -32,21 +31,18 @@ pub enum QuotingIssue {
     InconsistentQuoting,
 }
 
+#[allow(dead_code)]
 impl QuotingCorrector {
     pub fn new() -> Self {
         Self {
-            shell_metacharacters: vec![
-                ' ', '\t', '\n', '|', '&', ';', '(', ')', '<', '>', 
-                '?', '*', '[', ']', '{', '}', '$', '`', '\\', '"', '\'', '~'
-            ],
         }
     }
 
     /// Analyze and correct quoting issues in a command
     pub fn analyze_and_correct(&self, command: &str) -> QuotingAnalysis {
         let mut issues = Vec::new();
-        let mut corrections = Vec::new();
-        let mut corrected = command.to_string();
+        let corrections = Vec::new();
+        let corrected = command.to_string();
 
         /* 
         // Temporarily disabled due to aggressive quoting of flags and commands

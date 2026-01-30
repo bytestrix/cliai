@@ -2,7 +2,7 @@
 pkgname=cliai
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="A powerful CLI assistant powered by local AI (Ollama)"
+pkgdesc="A completely free and open-source CLI assistant powered by AI - use your own API keys or run locally"
 arch=('x86_64' 'aarch64')
 url="https://github.com/cliai-team/cliai"
 license=('MIT')
