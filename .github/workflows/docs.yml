@@ -16,13 +16,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-docs:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -35,15 +33,11 @@ jobs:
           cargo doc --no-deps --document-private-items
           echo '<meta http-equiv="refresh" content="0; url=cliai/index.html">' > target/doc/index.html
       
-      - name: Create documentation site
+      - name: Create docs site
         run: |
-          mkdir -p docs-site
-          
-          # Copy Rust docs
-          cp -r target/doc docs-site/api
-          
-          # Create main index page
-          cat > docs-site/index.html << 'EOF'
+          mkdir -p _site
+          cp -r target/doc _site/api
+          cat > _site/index.html << 'ENDOFFILE'
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -51,206 +45,35 @@ jobs:
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>CLIAI Documentation</title>
               <style>
-                  * { margin: 0; padding: 0; box-sizing: border-box; }
-                  body { 
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                      line-height: 1.6;
-                      color: #333;
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      min-height: 100vh;
-                      padding: 2rem;
-                  }
-                  .container {
-                      max-width: 1200px;
-                      margin: 0 auto;
-                      background: white;
-                      border-radius: 12px;
-                      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                      overflow: hidden;
-                  }
-                  header {
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      color: white;
-                      padding: 3rem 2rem;
-                      text-align: center;
-                  }
-                  h1 { font-size: 3rem; margin-bottom: 0.5rem; }
-                  .tagline { font-size: 1.2rem; opacity: 0.9; }
-                  .content { padding: 3rem 2rem; }
-                  .cards {
-                      display: grid;
-                      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                      gap: 2rem;
-                      margin: 2rem 0;
-                  }
-                  .card {
-                      border: 2px solid #e2e8f0;
-                      border-radius: 8px;
-                      padding: 2rem;
-                      transition: all 0.3s ease;
-                      text-decoration: none;
-                      color: inherit;
-                      display: block;
-                  }
-                  .card:hover {
-                      border-color: #667eea;
-                      transform: translateY(-4px);
-                      box-shadow: 0 12px 24px rgba(102, 126, 234, 0.2);
-                  }
-                  .card h2 { color: #667eea; margin-bottom: 1rem; }
-                  .card p { color: #64748b; }
-                  code {
-                      background: #f1f5f9;
-                      padding: 0.2rem 0.4rem;
-                      border-radius: 4px;
-                      font-family: 'Courier New', monospace;
-                  }
-                  pre {
-                      background: #1e293b;
-                      color: #e2e8f0;
-                      padding: 1.5rem;
-                      border-radius: 8px;
-                      overflow-x: auto;
-                      margin: 1rem 0;
-                  }
-                  .features {
-                      display: grid;
-                      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                      gap: 1.5rem;
-                      margin: 2rem 0;
-                  }
-                  .feature {
-                      padding: 1.5rem;
-                      background: #f8fafc;
-                      border-radius: 8px;
-                      border-left: 4px solid #667eea;
-                  }
-                  .feature h3 { color: #667eea; margin-bottom: 0.5rem; }
-                  footer {
-                      background: #f8fafc;
-                      padding: 2rem;
-                      text-align: center;
-                      color: #64748b;
-                  }
+                  body { font-family: system-ui; max-width: 1200px; margin: 0 auto; padding: 2rem; }
+                  h1 { color: #2563eb; }
+                  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 2rem 0; }
+                  .card { border: 2px solid #e5e7eb; border-radius: 8px; padding: 2rem; text-decoration: none; color: inherit; display: block; }
+                  .card:hover { border-color: #2563eb; }
               </style>
           </head>
           <body>
-              <div class="container">
-                  <header>
-                      <h1>🤖 CLIAI</h1>
-                      <p class="tagline">Your intelligent CLI assistant powered by AI</p>
-                  </header>
-                  
-                  <div class="content">
-                      <div class="cards">
-                          <a href="readme.html" class="card">
-                              <h2>📖 Getting Started</h2>
-                              <p>Installation guide, quick start, and basic usage examples</p>
-                          </a>
-                          
-                          <a href="api/cliai/index.html" class="card">
-                              <h2>📚 API Documentation</h2>
-                              <p>Complete Rust API documentation with all modules and functions</p>
-                          </a>
-                          
-                          <a href="https://github.com/cliai/cliai" class="card">
-                              <h2>💻 GitHub Repository</h2>
-                              <p>Source code, issues, and contributions</p>
-                          </a>
-                      </div>
-                      
-                      <h2>✨ Key Features</h2>
-                      <div class="features">
-                          <div class="feature">
-                              <h3>🔒 Privacy-First</h3>
-                              <p>Local AI processing with Ollama - your data never leaves your machine</p>
-                          </div>
-                          <div class="feature">
-                              <h3>🔑 Bring Your Own Key</h3>
-                              <p>Use your own OpenAI, Anthropic, or other LLM API keys</p>
-                          </div>
-                          <div class="feature">
-                              <h3>🆓 Completely Free</h3>
-                              <p>No subscriptions, no hidden costs - 100% open source</p>
-                          </div>
-                          <div class="feature">
-                              <h3>🛡️ Safety-Focused</h3>
-                              <p>Multi-level command validation and safety checks</p>
-                          </div>
-                      </div>
-                      
-                      <h2>🚀 Quick Start</h2>
-                      <pre><code># Install with one command
-curl -fsSL https://raw.githubusercontent.com/cliai/cliai/main/install.sh | bash
-
-# Or use Cargo
-cargo install cliai
-
-# Start using
-cliai "how do I list all files including hidden ones?"</code></pre>
-                  </div>
-                  
-                  <footer>
-                      <p>Made with ❤️ by the CLIAI Team | <a href="https://github.com/cliai/cliai">GitHub</a></p>
-                  </footer>
+              <h1>🤖 CLIAI Documentation</h1>
+              <p>Your intelligent CLI assistant powered by AI</p>
+              <div class="cards">
+                  <a href="api/cliai/index.html" class="card">
+                      <h2>📚 API Documentation</h2>
+                      <p>Complete Rust API documentation</p>
+                  </a>
+                  <a href="https://github.com/bytestrix/cliai" class="card">
+                      <h2>💻 GitHub Repository</h2>
+                      <p>Source code and contributions</p>
+                  </a>
               </div>
           </body>
           </html>
-          EOF
-          
-          # Convert README to HTML
-          cat > docs-site/readme.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>CLIAI - README</title>
-              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-              <style>
-                  body {
-                      max-width: 980px;
-                      margin: 0 auto;
-                      padding: 45px;
-                      background: #f6f8fa;
-                  }
-                  .markdown-body {
-                      background: white;
-                      padding: 45px;
-                      border-radius: 6px;
-                      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-                  }
-              </style>
-          </head>
-          <body>
-              <div class="markdown-body" id="content"></div>
-              <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-              <script>
-                  fetch('README.md')
-                      .then(response => response.text())
-                      .then(markdown => {
-                          document.getElementById('content').innerHTML = marked.parse(markdown);
-                      });
-              </script>
-          </body>
-          </html>
-          EOF
-          
-          # Copy README
-          cp README.md docs-site/README.md
+          ENDOFFILE
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build-docs
-    steps:
+          path: _site
+      
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
