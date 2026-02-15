@@ -33,41 +33,595 @@ jobs:
           cargo doc --no-deps --document-private-items
           echo '<meta http-equiv="refresh" content="0; url=cliai/index.html">' > target/doc/index.html
       
-      - name: Create docs site
+      - name: Install mdBook
+        run: |
+          mkdir -p ~/bin
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/bin
+          echo "$HOME/bin" >> $GITHUB_PATH
+      
+      - name: Create documentation structure
+        run: |
+          mkdir -p docs-book/src
+          
+          # Create book.toml
+          cat > docs-book/book.toml << 'EOF'
+          [book]
+          title = "CLIAI Documentation"
+          authors = ["CLIAI Team"]
+          language = "en"
+          multilingual = false
+          src = "src"
+          
+          [output.html]
+          default-theme = "light"
+          preferred-dark-theme = "navy"
+          git-repository-url = "https://github.com/bytestrix/cliai"
+          edit-url-template = "https://github.com/bytestrix/cliai/edit/main/{path}"
+          EOF
+          
+          # Create SUMMARY.md
+          cat > docs-book/src/SUMMARY.md << 'EOF'
+          # Summary
+          
+          [Introduction](./introduction.md)
+          
+          # Getting Started
+          - [Installation](./installation.md)
+          - [Quick Start](./quickstart.md)
+          - [Configuration](./configuration.md)
+          
+          # Usage
+          - [Basic Commands](./commands.md)
+          - [AI Providers](./providers.md)
+          - [Safety Features](./safety.md)
+          
+          # Advanced
+          - [Architecture](./architecture.md)
+          - [API Documentation](./api.md)
+          - [Contributing](./contributing.md)
+          EOF
+          
+          # Create introduction.md
+          cat > docs-book/src/introduction.md << 'EOF'
+          # Introduction
+          
+          **CLIAI** is a completely free and open-source command-line AI assistant that helps you with terminal commands, system administration, and general questions.
+          
+          ## Key Features
+          
+          - **🔒 Privacy-First**: Local AI processing with Ollama - your data never leaves your machine
+          - **🔑 Bring Your Own Key**: Use your own OpenAI, Anthropic, or other LLM API keys
+          - **🆓 Completely Free**: No subscriptions, no hidden costs - 100% open source
+          - **🛡️ Safety-Focused**: Multi-level command validation and safety checks
+          - **⚡ Fast & Reliable**: Built-in performance monitoring and circuit breakers
+          
+          ## Why CLIAI?
+          
+          CLIAI bridges the gap between natural language and command-line operations. Instead of searching documentation or Stack Overflow, simply ask CLIAI what you want to do, and it will generate the appropriate command with explanations.
+          
+          ## Supported Platforms
+          
+          - Linux (x86_64, ARM64)
+          - macOS (Intel, Apple Silicon)
+          - Windows (x86_64)
+          EOF
+          
+          # Create installation.md
+          cat > docs-book/src/installation.md << 'EOF'
+          # Installation
+          
+          ## Quick Install
+          
+          ### One-Line Install (Linux/macOS)
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/bytestrix/cliai/main/install.sh | bash
+          ```
+          
+          ### Cargo (All Platforms)
+          ```bash
+          cargo install cliai
+          ```
+          
+          ### Package Managers
+          
+          **Arch Linux (AUR)**
+          ```bash
+          yay -S cliai
+          ```
+          
+          **Ubuntu/Debian**
+          ```bash
+          wget https://github.com/bytestrix/cliai/releases/latest/download/cliai.deb
+          sudo dpkg -i cliai.deb
+          ```
+          
+          **macOS (Homebrew)**
+          ```bash
+          brew tap bytestrix/tap
+          brew install cliai
+          ```
+          
+          **Windows (Chocolatey)**
+          ```powershell
+          choco install cliai
+          ```
+          
+          ## From Source
+          
+          ```bash
+          git clone https://github.com/bytestrix/cliai.git
+          cd cliai
+          cargo build --release
+          sudo cp target/release/cliai /usr/local/bin/
+          ```
+          
+          ## Prerequisites
+          
+          For local AI processing (recommended):
+          - **Ollama** - [Install Ollama](https://ollama.ai/)
+          
+          For cloud AI:
+          - OpenAI API key, or
+          - Anthropic API key
+          EOF
+          
+          # Create quickstart.md
+          cat > docs-book/src/quickstart.md << 'EOF'
+          # Quick Start
+          
+          ## Setup
+          
+          ### Option 1: Local AI (Ollama)
+          
+          ```bash
+          # Install Ollama
+          curl -fsSL https://ollama.ai/install.sh | sh
+          
+          # Pull a model
+          ollama pull mistral
+          
+          # Configure CLIAI
+          cliai select mistral
+          ```
+          
+          ### Option 2: Cloud AI
+          
+          ```bash
+          # Set your API key
+          cliai set-key openai sk-your-key-here
+          
+          # Or use Anthropic
+          cliai set-key anthropic your-key-here
+          
+          # Select model
+          cliai select gpt-4
+          ```
+          
+          ## First Commands
+          
+          ```bash
+          # Ask for help
+          cliai "how do I list all files including hidden ones?"
+          
+          # System administration
+          cliai "check disk usage"
+          
+          # File operations
+          cliai "find all Python files modified in the last week"
+          
+          # Git operations
+          cliai "show me the last 5 commits"
+          ```
+          
+          ## Custom Prefix
+          
+          Set a custom command prefix:
+          
+          ```bash
+          cliai set-prefix ai
+          # Now use: ai "your question"
+          ```
+          EOF
+          
+          # Create configuration.md
+          cat > docs-book/src/configuration.md << 'EOF'
+          # Configuration
+          
+          ## Configuration File
+          
+          CLIAI stores configuration in `~/.config/cliai/config.toml`:
+          
+          ```toml
+          model = "mistral"
+          provider = "ollama"
+          auto_execute = false
+          dry_run = false
+          safety_level = "Medium"
+          context_timeout = 5000
+          ollama_url = "http://localhost:11434"
+          prefix = "cliai"
+          ```
+          
+          ## Commands
+          
+          ### Model Management
+          
+          ```bash
+          # List available models
+          cliai list-models
+          
+          # Select a model
+          cliai select mistral
+          
+          # List providers
+          cliai list-providers
+          ```
+          
+          ### API Key Management
+          
+          ```bash
+          # Set API key
+          cliai set-key openai sk-...
+          
+          # Test connection
+          cliai test-key openai
+          
+          # Remove key
+          cliai remove-key openai
+          ```
+          
+          ### Safety Settings
+          
+          ```bash
+          # Set safety level
+          cliai safety-level high    # Maximum safety
+          cliai safety-level medium  # Balanced (default)
+          cliai safety-level low     # Minimal checks
+          
+          # Enable auto-execution
+          cliai auto-execute --enable
+          
+          # Enable dry-run mode
+          cliai dry-run --enable
+          ```
+          
+          ### Other Settings
+          
+          ```bash
+          # View current configuration
+          cliai config
+          
+          # Clear chat history
+          cliai clear
+          
+          # Check provider status
+          cliai provider-status
+          
+          # View performance metrics
+          cliai performance-status
+          ```
+          EOF
+          
+          # Create commands.md
+          cat > docs-book/src/commands.md << 'EOF'
+          # Basic Commands
+          
+          ## Command Syntax
+          
+          ```bash
+          cliai "your question or request"
+          ```
+          
+          ## Examples
+          
+          ### File Operations
+          
+          ```bash
+          cliai "list all files in current directory"
+          cliai "find files larger than 100MB"
+          cliai "compress this folder"
+          cliai "extract archive.tar.gz"
+          ```
+          
+          ### System Information
+          
+          ```bash
+          cliai "check disk usage"
+          cliai "show memory usage"
+          cliai "list running processes"
+          cliai "what's my IP address?"
+          ```
+          
+          ### Git Operations
+          
+          ```bash
+          cliai "show git status"
+          cliai "create a new branch"
+          cliai "undo last commit"
+          cliai "show commit history"
+          ```
+          
+          ### Network Operations
+          
+          ```bash
+          cliai "test internet connection"
+          cliai "download file from URL"
+          cliai "check if port 8080 is open"
+          ```
+          
+          ### Package Management
+          
+          ```bash
+          cliai "install package nginx"
+          cliai "update all packages"
+          cliai "search for package python"
+          ```
+          EOF
+          
+          # Create providers.md
+          cat > docs-book/src/providers.md << 'EOF'
+          # AI Providers
+          
+          CLIAI supports multiple AI providers for maximum flexibility.
+          
+          ## Ollama (Local)
+          
+          **Recommended for privacy and offline use**
+          
+          ```bash
+          # Install Ollama
+          curl -fsSL https://ollama.ai/install.sh | sh
+          
+          # Pull models
+          ollama pull mistral
+          ollama pull llama2
+          ollama pull codellama
+          
+          # Configure CLIAI
+          cliai select mistral
+          ```
+          
+          **Advantages:**
+          - Complete privacy
+          - No API costs
+          - Works offline
+          - Fast responses
+          
+          ## OpenAI
+          
+          ```bash
+          # Set API key
+          cliai set-key openai sk-your-key-here
+          
+          # Select model
+          cliai select gpt-4
+          cliai select gpt-3.5-turbo
+          ```
+          
+          **Available Models:**
+          - gpt-4
+          - gpt-4-turbo
+          - gpt-3.5-turbo
+          
+          ## Anthropic
+          
+          ```bash
+          # Set API key
+          cliai set-key anthropic your-key-here
+          
+          # Select model
+          cliai select claude-3-sonnet
+          cliai select claude-3-haiku
+          cliai select claude-3-opus
+          ```
+          
+          **Available Models:**
+          - claude-3-opus
+          - claude-3-sonnet
+          - claude-3-haiku
+          
+          ## Provider Fallback
+          
+          CLIAI automatically falls back to alternative providers if the primary one fails:
+          
+          1. Try local Ollama first (if configured)
+          2. Fall back to cloud provider (if API key set)
+          3. Circuit breaker prevents repeated failures
+          EOF
+          
+          # Create safety.md
+          cat > docs-book/src/safety.md << 'EOF'
+          # Safety Features
+          
+          CLIAI includes multiple layers of safety to protect your system.
+          
+          ## Safety Levels
+          
+          ### High (Recommended for beginners)
+          - Blocks dangerous operations
+          - Requires confirmation for system changes
+          - Maximum validation
+          
+          ### Medium (Default)
+          - Balanced safety and convenience
+          - Confirms risky operations
+          - Standard validation
+          
+          ### Low (Experienced users)
+          - Minimal safety checks
+          - Allows most operations
+          - Basic validation only
+          
+          ## Command Validation
+          
+          Every command goes through multiple validation layers:
+          
+          1. **Syntax Checking**: Validates shell syntax
+          2. **Placeholder Detection**: Catches AI hallucinations
+          3. **Risk Assessment**: Categorizes command danger level
+          4. **Pattern Matching**: Detects known dangerous patterns
+          
+          ## Dangerous Patterns Detected
+          
+          - `rm -rf /` - System deletion
+          - `dd if=/dev/zero` - Disk wiping
+          - `chmod 777` - Insecure permissions
+          - `:(){ :|:& };:` - Fork bombs
+          - `curl | sh` - Unverified script execution
+          
+          ## Execution Modes
+          
+          ### Manual (Default)
+          Commands are displayed for you to review and execute manually.
+          
+          ### Auto-Execute
+          ```bash
+          cliai auto-execute --enable
+          ```
+          Safe commands execute automatically. Dangerous commands still require confirmation.
+          
+          ### Dry-Run
+          ```bash
+          cliai dry-run --enable
+          ```
+          Shows what would be executed without actually running commands.
+          EOF
+          
+          # Create architecture.md
+          cat > docs-book/src/architecture.md << 'EOF'
+          # Architecture
+          
+          CLIAI follows a modular architecture designed for reliability and extensibility.
+          
+          ## Core Components
+          
+          ### Orchestrator
+          Central coordinator managing AI providers and request routing.
+          
+          ### Intent Classifier
+          Determines the type of request (command, question, explanation).
+          
+          ### Context Gatherer
+          Collects system information for better responses.
+          
+          ### Command Validator
+          Multi-layer validation with security checks.
+          
+          ### Execution Engine
+          Safe command execution with multiple modes.
+          
+          ### Performance Monitor
+          Tracks metrics and system health.
+          
+          ### Circuit Breakers
+          Automatic failover between providers.
+          
+          ## Request Flow
+          
+          ```
+          User Input
+              ↓
+          Intent Classification
+              ↓
+          Context Gathering
+              ↓
+          AI Provider (Ollama/OpenAI/Anthropic)
+              ↓
+          Command Validation
+              ↓
+          Safety Checks
+              ↓
+          Execution (Manual/Auto/Dry-run)
+          ```
+          
+          ## Provider Management
+          
+          CLIAI uses a sophisticated provider management system:
+          
+          - **Priority-based routing**: Local first, cloud fallback
+          - **Circuit breakers**: Prevent repeated failures
+          - **Retry logic**: Automatic retries with backoff
+          - **Performance monitoring**: Track response times
+          - **Health checks**: Verify provider availability
+          EOF
+          
+          # Create api.md
+          cat > docs-book/src/api.md << 'EOF'
+          # API Documentation
+          
+          For detailed Rust API documentation, see:
+          
+          [Rust API Docs](../api/cliai/index.html)
+          
+          ## Key Modules
+          
+          - `agents` - AI orchestration and provider management
+          - `config` - Configuration management
+          - `validation` - Command validation and safety
+          - `execution` - Command execution engine
+          - `providers` - AI provider implementations
+          - `performance` - Performance monitoring
+          EOF
+          
+          # Create contributing.md
+          cp CONTRIBUTING.md docs-book/src/contributing.md 2>/dev/null || cat > docs-book/src/contributing.md << 'EOF'
+          # Contributing
+          
+          We welcome contributions! Here's how to get started.
+          
+          ## Development Setup
+          
+          ```bash
+          # Clone the repository
+          git clone https://github.com/bytestrix/cliai.git
+          cd cliai
+          
+          # Build
+          cargo build
+          
+          # Run tests
+          cargo test
+          
+          # Run clippy
+          cargo clippy
+          
+          # Format code
+          cargo fmt
+          ```
+          
+          ## Pull Request Process
+          
+          1. Fork the repository
+          2. Create a feature branch: `git checkout -b feature/amazing-feature`
+          3. Make your changes
+          4. Run tests: `cargo test`
+          5. Commit: `git commit -m 'Add amazing feature'`
+          6. Push: `git push origin feature/amazing-feature`
+          7. Open a Pull Request
+          
+          ## Code Style
+          
+          - Follow Rust conventions
+          - Add tests for new features
+          - Update documentation
+          - Run `cargo fmt` before committing
+          
+          ## Reporting Issues
+          
+          Use GitHub Issues to report bugs or request features:
+          https://github.com/bytestrix/cliai/issues
+          EOF
+      
+      - name: Build documentation book
+        run: |
+          cd docs-book
+          ~/bin/mdbook build
+      
+      - name: Create final site
         run: |
           mkdir -p _site
+          cp -r docs-book/book/* _site/
           cp -r target/doc _site/api
-          cat > _site/index.html << 'ENDOFFILE'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>CLIAI Documentation</title>
-              <style>
-                  body { font-family: system-ui; max-width: 1200px; margin: 0 auto; padding: 2rem; }
-                  h1 { color: #2563eb; }
-                  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 2rem 0; }
-                  .card { border: 2px solid #e5e7eb; border-radius: 8px; padding: 2rem; text-decoration: none; color: inherit; display: block; }
-                  .card:hover { border-color: #2563eb; }
-              </style>
-          </head>
-          <body>
-              <h1>🤖 CLIAI Documentation</h1>
-              <p>Your intelligent CLI assistant powered by AI</p>
-              <div class="cards">
-                  <a href="api/cliai/index.html" class="card">
-                      <h2>📚 API Documentation</h2>
-                      <p>Complete Rust API documentation</p>
-                  </a>
-                  <a href="https://github.com/bytestrix/cliai" class="card">
-                      <h2>💻 GitHub Repository</h2>
-                      <p>Source code and contributions</p>
-                  </a>
-              </div>
-          </body>
-          </html>
-          ENDOFFILE
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
