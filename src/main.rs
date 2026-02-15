@@ -541,6 +541,7 @@ async fn main() -> anyhow::Result<()> {
                 return Ok(());
             }
             Commands::SetPrefix { name } => {
+                #[cfg(unix)]
                 let old_prefix = app_config.prefix.clone();
                 let mut new_config = app_config.clone();
                 new_config.prefix = Some(name.clone());
