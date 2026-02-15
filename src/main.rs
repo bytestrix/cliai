@@ -550,6 +550,7 @@ async fn main() -> anyhow::Result<()> {
                         println!("{} Prefix set to: {}", "✅".green(), name.bold().yellow());
 
                         // Try to create a symlink in ~/.local/bin
+                        #[cfg(unix)]
                         if let Some(home) = dirs::home_dir() {
                             let local_bin = home.join(".local").join("bin");
                             let new_link = local_bin.join(&name);
@@ -563,25 +564,22 @@ async fn main() -> anyhow::Result<()> {
                             }
 
                             if let Ok(current_exe) = env::current_exe() {
-                                #[cfg(unix)]
-                                {
-                                    use std::os::unix::fs::symlink;
-                                    let _ = std::fs::create_dir_all(&local_bin);
-                                    if new_link.exists() {
-                                        let _ = std::fs::remove_file(&new_link);
-                                    }
-                                    match symlink(current_exe, &new_link) {
-                                        Ok(_) => println!(
-                                            "{} Shortcut created! You can now use: {}",
-                                            "✨".cyan(),
-                                            name.bold().green()
-                                        ),
-                                        Err(e) => eprintln!(
-                                            "{} Could not create symlink: {}",
-                                            "⚠️".yellow(),
-                                            e
-                                        ),
-                                    }
+                                use std::os::unix::fs::symlink;
+                                let _ = std::fs::create_dir_all(&local_bin);
+                                if new_link.exists() {
+                                    let _ = std::fs::remove_file(&new_link);
+                                }
+                                match symlink(current_exe, &new_link) {
+                                    Ok(_) => println!(
+                                        "{} Shortcut created! You can now use: {}",
+                                        "✨".cyan(),
+                                        name.bold().green()
+                                    ),
+                                    Err(e) => eprintln!(
+                                        "{} Could not create symlink: {}",
+                                        "⚠️".yellow(),
+                                        e
+                                    ),
                                 }
                             }
                         }
