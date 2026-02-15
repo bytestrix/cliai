@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $packageName = 'cliai'
 $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url64 = 'https://github.com/cliai-team/cliai/releases/download/v0.1.0/cliai-windows-x86_64.zip'
+$url64 = 'https://github.com/cliai/cliai/releases/download/v0.1.0/cliai-windows-x86_64.zip'
 $checksum64 = 'REPLACE_WITH_ACTUAL_CHECKSUM'
 
 $packageArgs = @{

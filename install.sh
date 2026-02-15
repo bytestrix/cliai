@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="cliai-team/cliai"
+REPO="cliai/cliai"
 BINARY_NAME="cliai"
 INSTALL_DIR="$HOME/.local/bin"
 

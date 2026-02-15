@@ -3,18 +3,18 @@
   <metadata>
     <id>cliai</id>
     <version>0.1.0</version>
-    <packageSourceUrl>https://github.com/cliai-team/cliai</packageSourceUrl>
+    <packageSourceUrl>https://github.com/cliai/cliai</packageSourceUrl>
     <owners>CLIAI Team</owners>
     <title>CLIAI - CLI AI Assistant</title>
     <authors>CLIAI Team</authors>
-    <projectUrl>https://github.com/cliai-team/cliai</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/cliai-team/cliai/main/assets/icon.png</iconUrl>
+    <projectUrl>https://github.com/cliai/cliai</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/cliai/cliai/main/assets/icon.png</iconUrl>
     <copyright>2024 CLIAI Team</copyright>
-    <licenseUrl>https://github.com/cliai-team/cliai/blob/main/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/cliai/cliai/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <projectSourceUrl>https://github.com/cliai-team/cliai</projectSourceUrl>
-    <docsUrl>https://github.com/cliai-team/cliai/wiki</docsUrl>
-    <bugTrackerUrl>https://github.com/cliai-team/cliai/issues</bugTrackerUrl>
+    <projectSourceUrl>https://github.com/cliai/cliai</projectSourceUrl>
+    <docsUrl>https://github.com/cliai/cliai/wiki</docsUrl>
+    <bugTrackerUrl>https://github.com/cliai/cliai/issues</bugTrackerUrl>
     <tags>cli ai assistant terminal command-line ollama</tags>
     <summary>A powerful CLI assistant powered by local AI (Ollama)</summary>
     <description>
@@ -28,7 +28,7 @@ Features:
 - Copy-Paste Safe: Clean command output
 - Flexible Execution: Auto-execute or manual copy-paste
     </description>
-    <releaseNotes>https://github.com/cliai-team/cliai/releases</releaseNotes>
+    <releaseNotes>https://github.com/cliai/cliai/releases</releaseNotes>
     <dependencies>
       <dependency id="vcredist2019" version="14.0" />
     </dependencies>

@@ -1,7 +1,7 @@
 # CLIAI 🤖
 
-[![CI](https://github.com/cliai-team/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/cliai-team/cliai/actions/workflows/ci.yml)
-[![Documentation](https://github.com/cliai-team/cliai/actions/workflows/docs.yml/badge.svg)](https://cliai-team.github.io/cliai/)
+[![CI](https://github.com/cliai/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/cliai/cliai/actions/workflows/ci.yml)
+[![Documentation](https://github.com/cliai/cliai/actions/workflows/docs.yml/badge.svg)](https://cliai.github.io/cliai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Crates.io](https://img.shields.io/crates/v/cliai.svg)](https://crates.io/crates/cliai)
 
@@ -32,7 +32,7 @@ CLIAI is a completely free and open-source command-line AI assistant that helps 
 
 #### 🔥 One-Line Install (Linux/macOS/Windows)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cliai-team/cliai/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cliai/cliai/main/install.sh | bash
 ```
 
 #### 📦 Package Managers
@@ -47,13 +47,13 @@ paru -S cliai
 **Ubuntu/Debian**
 ```bash
 # Download .deb from releases
-wget https://github.com/cliai-team/cliai/releases/latest/download/cliai.deb
+wget https://github.com/cliai/cliai/releases/latest/download/cliai.deb
 sudo dpkg -i cliai.deb
 ```
 
 **macOS (Homebrew)**
 ```bash
-brew tap cliai-team/tap
+brew tap cliai/tap
 brew install cliai
 ```
 
@@ -64,7 +64,7 @@ choco install cliai
 
 **Windows (Winget)**
 ```powershell
-winget install cliai-team.cliai
+winget install cliai.cliai
 ```
 
 **Cargo (All Platforms)**
@@ -74,7 +74,7 @@ cargo install cliai
 
 #### 📥 Manual Download
 
-Download pre-built binaries from [GitHub Releases](https://github.com/cliai-team/cliai/releases):
+Download pre-built binaries from [GitHub Releases](https://github.com/cliai/cliai/releases):
 
 - **Linux**: `cliai-linux-x86_64.tar.gz` or `cliai-linux-aarch64.tar.gz`
 - **macOS**: `cliai-macos-x86_64.tar.gz` or `cliai-macos-aarch64.tar.gz`  
@@ -82,7 +82,7 @@ Download pre-built binaries from [GitHub Releases](https://github.com/cliai-team
 
 #### 🔨 From Source
 ```bash
-git clone https://github.com/cliai-team/cliai.git
+git clone https://github.com/cliai/cliai.git
 cd cliai
 cargo build --release
 # Linux/macOS
@@ -334,7 +334,7 @@ cliai remove-key openai
 ### Building from Source
 
 ```bash
-git clone https://github.com/cliai-team/cliai.git
+git clone https://github.com/cliai/cliai.git
 cd cliai
 cargo build --release
 ```
@@ -400,10 +400,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [https://cliai-team.github.io/cliai/](https://cliai-team.github.io/cliai/)
-- **Issues**: [GitHub Issues](https://github.com/cliai-team/cliai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cliai-team/cliai/discussions)
-- **Wiki**: [GitHub Wiki](https://github.com/cliai-team/cliai/wiki)
+- **Documentation**: [https://cliai.github.io/cliai/](https://cliai.github.io/cliai/)
+- **Issues**: [GitHub Issues](https://github.com/cliai/cliai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cliai/cliai/discussions)
+- **Wiki**: [GitHub Wiki](https://github.com/cliai/cliai/wiki)
 
 ---
 
@@ -411,4 +411,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=cliai-team/cliai&type=Date)](https://star-history.com/#cliai-team/cliai&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=cliai/cliai&type=Date)](https://star-history.com/#cliai/cliai&Date)

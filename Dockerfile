@@ -60,7 +60,7 @@ CMD ["--help"]
 # Labels
 LABEL org.opencontainers.image.title="CLIAI"
 LABEL org.opencontainers.image.description="A powerful CLI assistant powered by local AI"
-LABEL org.opencontainers.image.url="https://github.com/cliai-team/cliai"
-LABEL org.opencontainers.image.source="https://github.com/cliai-team/cliai"
+LABEL org.opencontainers.image.url="https://github.com/cliai/cliai"
+LABEL org.opencontainers.image.source="https://github.com/cliai/cliai"
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.licenses="MIT"

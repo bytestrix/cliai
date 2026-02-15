@@ -158,7 +158,7 @@ jobs:
                               <p>Complete Rust API documentation with all modules and functions</p>
                           </a>
                           
-                          <a href="https://github.com/cliai-team/cliai" class="card">
+                          <a href="https://github.com/cliai/cliai" class="card">
                               <h2>💻 GitHub Repository</h2>
                               <p>Source code, issues, and contributions</p>
                           </a>
@@ -186,7 +186,7 @@ jobs:
                       
                       <h2>🚀 Quick Start</h2>
                       <pre><code># Install with one command
-curl -fsSL https://raw.githubusercontent.com/cliai-team/cliai/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/cliai/cliai/main/install.sh | bash
 
 # Or use Cargo
 cargo install cliai
@@ -196,7 +196,7 @@ cliai "how do I list all files including hidden ones?"</code></pre>
                   </div>
                   
                   <footer>
-                      <p>Made with ❤️ by the CLIAI Team | <a href="https://github.com/cliai-team/cliai">GitHub</a></p>
+                      <p>Made with ❤️ by the CLIAI Team | <a href="https://github.com/cliai/cliai">GitHub</a></p>
                   </footer>
               </div>
           </body>

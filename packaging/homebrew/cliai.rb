@@ -1,10 +1,10 @@
 class Cliai < Formula
   desc "A powerful CLI assistant powered by local AI (Ollama)"
-  homepage "https://github.com/cliai-team/cliai"
-  url "https://github.com/cliai-team/cliai/archive/refs/tags/v0.1.0.tar.gz"
+  homepage "https://github.com/cliai/cliai"
+  url "https://github.com/cliai/cliai/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "REPLACE_WITH_ACTUAL_SHA256"
   license "MIT"
-  head "https://github.com/cliai-team/cliai.git", branch: "main"
+  head "https://github.com/cliai/cliai.git", branch: "main"
 
   depends_on "rust" => :build
   depends_on "openssl@3"
