@@ -1,7 +1,7 @@
 # CLIAI 🤖
 
-[![CI](https://github.com/cliai/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/cliai/cliai/actions/workflows/ci.yml)
-[![Documentation](https://github.com/cliai/cliai/actions/workflows/docs.yml/badge.svg)](https://cliai.github.io/cliai/)
+[![CI](https://github.com/bytestrix/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/bytestrix/cliai/actions/workflows/ci.yml)
+[![Documentation](https://github.com/bytestrix/cliai/actions/workflows/docs.yml/badge.svg)](https://bytestrix.github.io/cliai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Crates.io](https://img.shields.io/crates/v/cliai.svg)](https://crates.io/crates/cliai)
 
@@ -30,65 +30,26 @@ CLIAI is a completely free and open-source command-line AI assistant that helps 
 
 ### Installation
 
-#### 🔥 One-Line Install (Linux/macOS/Windows)
+#### 🔨 From Source (Recommended)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cliai/cliai/main/install.sh | bash
+git clone https://github.com/bytestrix/cliai.git
+cd cliai
+cargo build --release
+sudo cp target/release/cliai /usr/local/bin/
 ```
 
-#### 📦 Package Managers
-
-**Arch Linux (AUR)**
-```bash
-yay -S cliai
-# or
-paru -S cliai
-```
-
-**Ubuntu/Debian**
-```bash
-# Download .deb from releases
-wget https://github.com/cliai/cliai/releases/latest/download/cliai.deb
-sudo dpkg -i cliai.deb
-```
-
-**macOS (Homebrew)**
-```bash
-brew tap cliai/tap
-brew install cliai
-```
-
-**Windows (Chocolatey)**
-```powershell
-choco install cliai
-```
-
-**Windows (Winget)**
-```powershell
-winget install cliai.cliai
-```
-
-**Cargo (All Platforms)**
+#### 📦 Via Cargo
 ```bash
 cargo install cliai
 ```
 
-#### 📥 Manual Download
+#### 📥 Pre-built Binaries
 
-Download pre-built binaries from [GitHub Releases](https://github.com/cliai/cliai/releases):
+Download from [GitHub Releases](https://github.com/bytestrix/cliai/releases):
 
 - **Linux**: `cliai-linux-x86_64.tar.gz` or `cliai-linux-aarch64.tar.gz`
 - **macOS**: `cliai-macos-x86_64.tar.gz` or `cliai-macos-aarch64.tar.gz`  
 - **Windows**: `cliai-windows-x86_64.zip`
-
-#### 🔨 From Source
-```bash
-git clone https://github.com/cliai/cliai.git
-cd cliai
-cargo build --release
-# Linux/macOS
-sudo cp target/release/cliai /usr/local/bin/
-# Windows: Copy target/release/cliai.exe to a directory in your PATH
-```
 
 ### Setup
 
@@ -334,7 +295,7 @@ cliai remove-key openai
 ### Building from Source
 
 ```bash
-git clone https://github.com/cliai/cliai.git
+git clone https://github.com/bytestrix/cliai.git
 cd cliai
 cargo build --release
 ```
@@ -345,11 +306,8 @@ cargo build --release
 # Unit tests
 cargo test
 
-# Integration tests
-cargo test --test integration
-
-# Live AI tests (requires Ollama)
-cliai test --quick
+# Build
+cargo build --release
 ```
 
 ### Project Structure
@@ -382,7 +340,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
-4. Run tests: `cargo test && cliai test --quick`
+4. Run tests: `cargo test`
 5. Commit changes: `git commit -m 'Add amazing feature'`
 6. Push to branch: `git push origin feature/amazing-feature`
 7. Open a Pull Request
@@ -400,15 +358,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [https://cliai.github.io/cliai/](https://cliai.github.io/cliai/)
-- **Issues**: [GitHub Issues](https://github.com/cliai/cliai/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/cliai/cliai/discussions)
-- **Wiki**: [GitHub Wiki](https://github.com/cliai/cliai/wiki)
+- **Documentation**: [https://bytestrix.github.io/cliai/](https://bytestrix.github.io/cliai/)
+- **Issues**: [GitHub Issues](https://github.com/bytestrix/cliai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/bytestrix/cliai/discussions)
 
 ---
 
 **Made with ❤️ by the CLIAI Team**
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=cliai/cliai&type=Date)](https://star-history.com/#cliai/cliai&Date)
