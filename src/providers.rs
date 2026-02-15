@@ -1,11 +1,13 @@
-use anyhow::{Result, anyhow};
+use crate::agents::profiles::AgentProfile;
+use crate::performance::{
+    OperationType, PerformanceMonitor, SystemPerformanceSummary, TimeoutHandler,
+};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde_json::json;
-use std::time::Duration;
 use std::collections::HashMap;
-use crate::agents::profiles::AgentProfile;
-use crate::performance::{OperationType, PerformanceMonitor, SystemPerformanceSummary, TimeoutHandler};
+use std::time::Duration;
 
 /// Provider type enumeration for different AI backends
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -19,16 +21,16 @@ pub enum ProviderType {
 pub trait AIProvider: Send + Sync {
     /// Generate a response using the provider's AI model
     async fn generate_response(&self, prompt: &str, agent: &AgentProfile) -> Result<String>;
-    
+
     /// List available models for this provider
     async fn list_models(&self) -> Result<Vec<String>>;
-    
+
     /// Get the provider type (Local or Cloud)
     fn get_provider_type(&self) -> ProviderType;
-    
+
     /// Check if the provider is currently available
     async fn is_available(&self) -> bool;
-    
+
     /// Get the provider name for logging/display purposes
     fn get_name(&self) -> &'static str;
 }
@@ -36,8 +38,8 @@ pub trait AIProvider: Send + Sync {
 /// Circuit breaker states for provider failure handling
 #[derive(Debug, Clone, PartialEq)]
 pub enum CircuitBreakerState {
-    Closed,  // Normal operation
-    Open,    // Failing, don't try
+    Closed,   // Normal operation
+    Open,     // Failing, don't try
     HalfOpen, // Testing if recovered
 }
 
@@ -125,11 +127,11 @@ impl ProviderManager {
         let mut circuit_breakers = HashMap::new();
         circuit_breakers.insert(
             ProviderType::Local,
-            CircuitBreaker::new(5, Duration::from_secs(30))
+            CircuitBreaker::new(5, Duration::from_secs(30)),
         );
         circuit_breakers.insert(
             ProviderType::Cloud,
-            CircuitBreaker::new(3, Duration::from_secs(15))
+            CircuitBreaker::new(3, Duration::from_secs(15)),
         );
 
         Self {
@@ -159,33 +161,45 @@ impl ProviderManager {
 
     /// Get a response using the fallback chain with performance monitoring and timeout handling
     /// Includes response streaming and intelligent caching for faster responses
-    pub async fn get_response(&mut self, prompt: &str, agent: &AgentProfile, timeout: Duration) -> Result<String> {
+    pub async fn get_response(
+        &mut self,
+        prompt: &str,
+        agent: &AgentProfile,
+        timeout: Duration,
+    ) -> Result<String> {
         // Check cache first for identical prompts (simple hash-based cache)
         let prompt_hash = self.hash_prompt(prompt, agent);
         if let Some(cached_response) = self.check_cache(&prompt_hash) {
             return Ok(cached_response);
         }
-        
+
         // Use the provided timeout, with a reasonable minimum of 5s (reduced from 10s)
         let individual_timeout = std::cmp::max(timeout, Duration::from_secs(5));
         let total_timeout = std::cmp::max(individual_timeout, Duration::from_secs(8));
         let timeout_handler = TimeoutHandler::new(total_timeout);
-        let operation_id = format!("total_system_{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0));
-        
+        let operation_id = format!(
+            "total_system_{}",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        );
+
         // Start total system performance monitoring
-        self.performance_monitor.start_timer(operation_id.clone(), OperationType::TotalSystem);
-        
+        self.performance_monitor
+            .start_timer(operation_id.clone(), OperationType::TotalSystem);
+
         let mut last_error = None;
         let fallback_chain = self.fallback_chain.clone();
-        
+
         // Try providers sequentially with optimized timeouts
         for provider_type in &fallback_chain {
             if timeout_handler.is_expired() {
                 let measurement = self.performance_monitor.stop_timer_with_error(
-                    &operation_id, 
-                    "Total system timeout exceeded".to_string()
+                    &operation_id,
+                    "Total system timeout exceeded".to_string(),
                 )?;
-                return Err(anyhow!("Total system timeout exceeded after {}", measurement.format_duration()));
+                return Err(anyhow!(
+                    "Total system timeout exceeded after {}",
+                    measurement.format_duration()
+                ));
             }
 
             if let Some(circuit_breaker) = self.circuit_breakers.get_mut(provider_type) {
@@ -203,56 +217,64 @@ impl ProviderManager {
 
             for attempt in 0..retry_limit {
                 // Use shorter timeout for first provider to enable faster fallback
-                let operation_timeout = if provider_type == fallback_chain.first().unwrap() && attempt == 0 {
-                    std::cmp::min(individual_timeout, Duration::from_secs(3))
-                } else {
-                    individual_timeout
-                };
-                
+                let operation_timeout =
+                    if provider_type == fallback_chain.first().unwrap() && attempt == 0 {
+                        std::cmp::min(individual_timeout, Duration::from_secs(3))
+                    } else {
+                        individual_timeout
+                    };
+
                 if operation_timeout.is_zero() {
                     break;
                 }
 
-                let provider_operation_id = format!("{}_{}_attempt_{}", 
-                    format!("{:?}", provider_type).to_lowercase(), 
+                let provider_operation_id = format!(
+                    "{}_{}_attempt_{}",
+                    format!("{:?}", provider_type).to_lowercase(),
                     chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0),
                     attempt
                 );
-                self.performance_monitor.start_timer(provider_operation_id.clone(), op_type);
+                self.performance_monitor
+                    .start_timer(provider_operation_id.clone(), op_type);
 
                 let result = if let Some(provider) = self.get_provider_by_type(provider_type) {
                     tokio::time::timeout(
                         operation_timeout,
-                        provider.generate_response(prompt, agent)
-                    ).await
+                        provider.generate_response(prompt, agent),
+                    )
+                    .await
                 } else {
                     continue;
                 };
 
                 match result {
                     Ok(Ok(response)) => {
-                        let _measurement = self.performance_monitor.stop_timer(&provider_operation_id, true)?;
-                        let _total_measurement = self.performance_monitor.stop_timer(&operation_id, true)?;
-                        
+                        let _measurement = self
+                            .performance_monitor
+                            .stop_timer(&provider_operation_id, true)?;
+                        let _total_measurement =
+                            self.performance_monitor.stop_timer(&operation_id, true)?;
+
                         // Cache successful response
                         self.cache_response(&prompt_hash, &response);
-                        
-                        if let Some(circuit_breaker) = self.circuit_breakers.get_mut(provider_type) {
+
+                        if let Some(circuit_breaker) = self.circuit_breakers.get_mut(provider_type)
+                        {
                             circuit_breaker.record_success();
                         }
                         return Ok(response);
                     }
                     Ok(Err(e)) => {
                         let _measurement = self.performance_monitor.stop_timer_with_error(
-                            &provider_operation_id, 
-                            format!("Provider error: {}", e)
+                            &provider_operation_id,
+                            format!("Provider error: {}", e),
                         )?;
                         last_error = Some(e);
-                        
+
                         if attempt < retry_limit - 1 {
                             let backoff_ms = 50 * (attempt + 1) as u64; // Reduced backoff
                             let backoff_duration = Duration::from_millis(backoff_ms);
-                            
+
                             if timeout_handler.has_time_for(backoff_duration) {
                                 tokio::time::sleep(backoff_duration).await;
                             } else {
@@ -262,11 +284,16 @@ impl ProviderManager {
                     }
                     Err(_timeout_error) => {
                         let _measurement = self.performance_monitor.stop_timer_with_error(
-                            &provider_operation_id, 
-                            format!("Operation timeout after {}ms", operation_timeout.as_millis())
+                            &provider_operation_id,
+                            format!(
+                                "Operation timeout after {}ms",
+                                operation_timeout.as_millis()
+                            ),
                         )?;
-                        last_error = Some(anyhow!("Provider {} timed out", 
-                            format!("{:?}", provider_type)));
+                        last_error = Some(anyhow!(
+                            "Provider {} timed out",
+                            format!("{:?}", provider_type)
+                        ));
                         break;
                     }
                 }
@@ -277,32 +304,31 @@ impl ProviderManager {
             }
         }
 
-        let _total_measurement = self.performance_monitor.stop_timer_with_error(
-            &operation_id, 
-            "All providers failed".to_string()
-        )?;
+        let _total_measurement = self
+            .performance_monitor
+            .stop_timer_with_error(&operation_id, "All providers failed".to_string())?;
 
         Err(last_error.unwrap_or_else(|| anyhow!("No providers available")))
     }
-    
+
     /// Simple hash function for prompt caching
     fn hash_prompt(&self, prompt: &str, agent: &AgentProfile) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         prompt.hash(&mut hasher);
         agent.name.hash(&mut hasher);
         hasher.finish()
     }
-    
+
     /// Check cache for existing response (simple in-memory cache)
     fn check_cache(&self, _prompt_hash: &u64) -> Option<String> {
         // For now, return None (no caching)
         // In production, implement LRU cache with TTL
         None
     }
-    
+
     /// Cache a successful response
     fn cache_response(&self, _prompt_hash: &u64, _response: &str) {
         // For now, do nothing
@@ -353,8 +379,12 @@ impl ProviderManager {
     }
 
     /// Get provider by type (returns first match)
-    pub fn get_provider_by_type(&self, provider_type: &ProviderType) -> Option<&Box<dyn AIProvider>> {
-        self.providers.iter()
+    pub fn get_provider_by_type(
+        &self,
+        provider_type: &ProviderType,
+    ) -> Option<&Box<dyn AIProvider>> {
+        self.providers
+            .iter()
             .find(|p| p.get_provider_type() == *provider_type)
     }
 
@@ -363,14 +393,16 @@ impl ProviderManager {
         let mut status = Vec::new();
         for provider in &self.providers {
             let provider_type = provider.get_provider_type();
-            let circuit_state = self.circuit_breakers.get(&provider_type)
+            let circuit_state = self
+                .circuit_breakers
+                .get(&provider_type)
                 .map(|cb| cb.get_state())
                 .unwrap_or(CircuitBreakerState::Closed);
-            
+
             status.push((
                 provider.get_name().to_string(),
                 provider_type,
-                circuit_state
+                circuit_state,
             ));
         }
         status
@@ -430,7 +462,7 @@ impl OllamaProvider {
             .connect_timeout(Duration::from_secs(15)) // Increased connection timeout
             .build()
             .unwrap_or_else(|_| Client::new());
-            
+
         Self {
             client,
             base_url,
@@ -438,7 +470,7 @@ impl OllamaProvider {
             timeout: Duration::from_secs(120), // 120 second timeout for local models
         }
     }
-    
+
     /// Create with custom timeout
     pub fn with_timeout(base_url: String, model: String, timeout: Duration) -> Self {
         let client = Client::builder()
@@ -446,7 +478,7 @@ impl OllamaProvider {
             .connect_timeout(Duration::from_secs(10))
             .build()
             .unwrap_or_else(|_| Client::new());
-            
+
         Self {
             client,
             base_url,
@@ -454,12 +486,12 @@ impl OllamaProvider {
             timeout,
         }
     }
-    
+
     /// Update the model being used
     pub fn set_model(&mut self, model: String) {
         self.model = model;
     }
-    
+
     /// Get the current model
     pub fn get_model(&self) -> &str {
         &self.model
@@ -480,7 +512,7 @@ impl AIProvider for OllamaProvider {
         });
 
         let url = format!("{}/api/generate", self.base_url);
-        
+
         let response = self.client
             .post(&url)
             .json(&body)
@@ -500,38 +532,44 @@ impl AIProvider for OllamaProvider {
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            return Err(anyhow!("Ollama returned error: {} - {}. Please check if the model '{}' is available. Try: ollama pull {}", 
-                status, 
+            return Err(anyhow!("Ollama returned error: {} - {}. Please check if the model '{}' is available. Try: ollama pull {}",
+                status,
                 error_text,
                 self.model,
                 self.model
             ));
         }
 
-        let json: serde_json::Value = response.json().await
+        let json: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| anyhow!("Failed to parse Ollama response: {}", e))?;
-        
-        let reply = json["response"].as_str()
+
+        let reply = json["response"]
+            .as_str()
             .ok_or_else(|| anyhow!("No response field in Ollama response"))?;
-        
+
         Ok(reply.to_string())
     }
 
     async fn list_models(&self) -> Result<Vec<String>> {
         let url = format!("{}/api/tags", self.base_url);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .send()
             .await
             .map_err(|e| anyhow!("Failed to connect to Ollama: {}", e))?;
-        
+
         if !response.status().is_success() {
             return Err(anyhow!("Ollama returned error: {}", response.status()));
         }
 
-        let json: serde_json::Value = response.json().await
+        let json: serde_json::Value = response
+            .json()
+            .await
             .map_err(|e| anyhow!("Failed to parse Ollama response: {}", e))?;
-        
+
         let mut models = Vec::new();
         if let Some(models_array) = json["models"].as_array() {
             for model in models_array {
@@ -540,7 +578,7 @@ impl AIProvider for OllamaProvider {
                 }
             }
         }
-        
+
         Ok(models)
     }
 
@@ -550,14 +588,14 @@ impl AIProvider for OllamaProvider {
 
     async fn is_available(&self) -> bool {
         let url = format!("{}/api/tags", self.base_url);
-        
+
         // Use a shorter timeout for availability check
         let test_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .connect_timeout(Duration::from_secs(3))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-            
+
         test_client
             .get(&url)
             .send()
@@ -601,8 +639,9 @@ impl AIProvider for CloudProvider {
         });
 
         let url = format!("{}/v1/ai/chat", self.backend_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(&url)
             .header("Authorization", format!("Bearer {}", self.api_token))
             .json(&body)
@@ -617,12 +656,13 @@ impl AIProvider for CloudProvider {
         }
 
         let json: serde_json::Value = response.json().await?;
-        
+
         // Azure OpenAI response structure support
-        let reply = json["choices"][0]["message"]["content"].as_str()
+        let reply = json["choices"][0]["message"]["content"]
+            .as_str()
             .or_else(|| json["response"].as_str())
             .ok_or_else(|| anyhow!("Unexpected response format from cloud"))?;
-        
+
         Ok(reply.to_string())
     }
 
@@ -637,14 +677,18 @@ impl AIProvider for CloudProvider {
 
     async fn is_available(&self) -> bool {
         let url = format!("{}/health", self.backend_url);
-        self.client.get(&url).send().await.map(|r| r.status().is_success()).unwrap_or(false)
+        self.client
+            .get(&url)
+            .send()
+            .await
+            .map(|r| r.status().is_success())
+            .unwrap_or(false)
     }
 
     fn get_name(&self) -> &'static str {
         "OpenAI/Anthropic"
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -667,15 +711,15 @@ mod tests {
     #[test]
     fn test_circuit_breaker_can_execute() {
         let mut cb = CircuitBreaker::new(3, Duration::from_secs(60));
-        
+
         // Initially should allow execution
         assert!(cb.can_execute());
-        
+
         // After failures below threshold, should still allow
         cb.record_failure();
         cb.record_failure();
         assert!(cb.can_execute());
-        
+
         // After reaching threshold, should open
         cb.record_failure();
         assert_eq!(cb.get_state(), CircuitBreakerState::Open);
@@ -685,12 +729,12 @@ mod tests {
     #[test]
     fn test_circuit_breaker_success_reset() {
         let mut cb = CircuitBreaker::new(3, Duration::from_secs(60));
-        
+
         // Record some failures
         cb.record_failure();
         cb.record_failure();
         assert_eq!(cb.failure_count, 2);
-        
+
         // Success should reset
         cb.record_success();
         assert_eq!(cb.failure_count, 0);
@@ -700,8 +744,11 @@ mod tests {
     #[test]
     fn test_provider_manager_creation() {
         let manager = ProviderManager::new();
-        
-        assert_eq!(manager.fallback_chain, vec![ProviderType::Local, ProviderType::Cloud]);
+
+        assert_eq!(
+            manager.fallback_chain,
+            vec![ProviderType::Local, ProviderType::Cloud]
+        );
         assert_eq!(manager.retry_limits.get(&ProviderType::Cloud), Some(&1));
         assert_eq!(manager.retry_limits.get(&ProviderType::Local), Some(&2));
         assert!(manager.circuit_breakers.contains_key(&ProviderType::Cloud));
@@ -711,15 +758,18 @@ mod tests {
     #[test]
     fn test_provider_manager_set_fallback_chain() {
         let mut manager = ProviderManager::new();
-        
+
         manager.set_fallback_chain(vec![ProviderType::Local, ProviderType::Cloud]);
-        assert_eq!(manager.fallback_chain, vec![ProviderType::Local, ProviderType::Cloud]);
+        assert_eq!(
+            manager.fallback_chain,
+            vec![ProviderType::Local, ProviderType::Cloud]
+        );
     }
 
     #[test]
     fn test_provider_manager_set_retry_limit() {
         let mut manager = ProviderManager::new();
-        
+
         manager.set_retry_limit(ProviderType::Cloud, 5);
         assert_eq!(manager.retry_limits.get(&ProviderType::Cloud), Some(&5));
     }
@@ -727,7 +777,7 @@ mod tests {
     #[test]
     fn test_provider_manager_switch_preference() {
         let mut manager = ProviderManager::new();
-        
+
         // Initially Local first
         assert_eq!(manager.fallback_chain[0], ProviderType::Local);
 
@@ -740,7 +790,7 @@ mod tests {
     #[test]
     fn test_provider_manager_reset_circuit_breakers() {
         let mut manager = ProviderManager::new();
-        
+
         // Trigger some failures
         if let Some(cb) = manager.circuit_breakers.get_mut(&ProviderType::Cloud) {
             cb.record_failure();
@@ -748,7 +798,7 @@ mod tests {
             cb.record_failure();
             assert_eq!(cb.get_state(), CircuitBreakerState::Open);
         }
-        
+
         // Reset should clear failures
         manager.reset_circuit_breakers();
         if let Some(cb) = manager.circuit_breakers.get(&ProviderType::Cloud) {
@@ -759,11 +809,9 @@ mod tests {
 
     #[test]
     fn test_ollama_provider_creation() {
-        let provider = OllamaProvider::new(
-            "http://localhost:11434".to_string(),
-            "mistral".to_string()
-        );
-        
+        let provider =
+            OllamaProvider::new("http://localhost:11434".to_string(), "mistral".to_string());
+
         assert_eq!(provider.get_provider_type(), ProviderType::Local);
         assert_eq!(provider.get_name(), "Ollama");
         assert_eq!(provider.get_model(), "mistral");
@@ -774,19 +822,17 @@ mod tests {
         let provider = OllamaProvider::with_timeout(
             "http://localhost:11434".to_string(),
             "mistral".to_string(),
-            Duration::from_secs(60)
+            Duration::from_secs(60),
         );
-        
+
         assert_eq!(provider.timeout, Duration::from_secs(60));
     }
 
     #[test]
     fn test_ollama_provider_set_model() {
-        let mut provider = OllamaProvider::new(
-            "http://localhost:11434".to_string(),
-            "mistral".to_string()
-        );
-        
+        let mut provider =
+            OllamaProvider::new("http://localhost:11434".to_string(), "mistral".to_string());
+
         provider.set_model("llama2".to_string());
         assert_eq!(provider.get_model(), "llama2");
     }
@@ -795,9 +841,9 @@ mod tests {
     fn test_cloud_provider_creation() {
         let provider = CloudProvider::new(
             "https://api.openai.com/v1/chat/completions".to_string(),
-            "test-key".to_string()
+            "test-key".to_string(),
         );
-        
+
         assert_eq!(provider.get_provider_type(), ProviderType::Cloud);
         assert_eq!(provider.get_name(), "OpenAI/Anthropic");
     }
@@ -806,9 +852,9 @@ mod tests {
     fn test_cloud_provider_set_model() {
         let provider = CloudProvider::new(
             "https://api.openai.com/v1/chat/completions".to_string(),
-            "test-key".to_string()
+            "test-key".to_string(),
         );
-        
+
         // CloudProvider doesn't have set_model/get_model methods
         // Just test that it was created successfully
         assert_eq!(provider.get_provider_type(), ProviderType::Cloud);
@@ -818,9 +864,9 @@ mod tests {
     async fn test_cloud_provider_list_models() {
         let provider = CloudProvider::new(
             "https://api.openai.com/v1/chat/completions".to_string(),
-            "test-key".to_string()
+            "test-key".to_string(),
         );
-        
+
         // This will fail in tests since we don't have a real API key
         // but we can test that the method exists
         let result = provider.list_models().await;
@@ -831,17 +877,20 @@ mod tests {
     #[tokio::test]
     async fn test_provider_manager_empty_list_models() {
         let manager = ProviderManager::new();
-        
+
         // Should fail when no providers are added
         let result = manager.list_models().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No providers available"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No providers available"));
     }
 
     #[tokio::test]
     async fn test_provider_manager_empty_is_available() {
         let manager = ProviderManager::new();
-        
+
         // Should return false when no providers are added
         assert!(!manager.is_any_provider_available().await);
     }

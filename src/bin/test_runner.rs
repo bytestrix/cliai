@@ -1,7 +1,7 @@
-use clap::{Parser, Subcommand};
-use colored::*;
-use cliai::{Config, TestSuite, TestCategory};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
+use cliai::{Config, TestCategory, TestSuite};
+use colored::*;
 
 #[derive(Parser)]
 #[command(name = "test_runner")]
@@ -43,9 +43,9 @@ async fn main() -> Result<()> {
         Commands::All { save } => {
             println!("{}", "🚀 Running Complete CLIAI Test Suite".bold().green());
             println!();
-            
+
             let results = test_suite.run_complete_test_suite(config).await?;
-            
+
             if let Some(filename) = save {
                 test_suite.save_test_results(&results, &filename)?;
             }
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
             match parsed_categories {
                 Ok(cats) => {
                     let results = test_suite.run_category_tests(config, cats).await?;
-                    
+
                     if let Some(filename) = save {
                         test_suite.save_test_results(&results, &filename)?;
                     }
@@ -89,7 +89,7 @@ async fn main() -> Result<()> {
         Commands::List => {
             println!("{}", "📋 CLIAI Test Questions".bold().cyan());
             println!();
-            
+
             for question in test_suite.get_test_questions() {
                 let category_color = match question.category {
                     TestCategory::FileManagement => "blue",
@@ -100,27 +100,32 @@ async fn main() -> Result<()> {
                     TestCategory::ProcessManagement => "red",
                     TestCategory::General => "white",
                 };
-                
-                println!("{:2}. {} [{}] {}", 
+
+                println!(
+                    "{:2}. {} [{}] {}",
                     question.id,
                     question.question,
                     format!("{:?}", question.category).color(category_color),
-                    if question.should_have_command { "📝" } else { "💬" }
+                    if question.should_have_command {
+                        "📝"
+                    } else {
+                        "💬"
+                    }
                 );
             }
-            
+
             println!();
             println!("Legend: 📝 = Should generate command, 💬 = Explanation only");
         }
         Commands::Categories => {
             println!("{}", "📂 Test Categories".bold().cyan());
             println!();
-            
+
             let mut category_counts = std::collections::HashMap::new();
             for question in test_suite.get_test_questions() {
                 *category_counts.entry(&question.category).or_insert(0) += 1;
             }
-            
+
             for (category, count) in category_counts {
                 println!("• {:?}: {} tests", category, count);
             }

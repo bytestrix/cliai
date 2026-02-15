@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::config::{Config, SafetyLevel};
-use crate::validation::{ValidationResult, SecurityWarning};
+use crate::validation::{SecurityWarning, ValidationResult};
+use serde::{Deserialize, Serialize};
 
 /// Execution mode determines how commands should be handled
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -41,28 +41,31 @@ pub struct MultiStepHandler {
 impl MultiStepHandler {
     /// Parse a multi-line command into individual steps
     pub fn parse_multi_step_command(command_text: &str) -> Option<Self> {
-        let lines: Vec<&str> = command_text.lines()
+        let lines: Vec<&str> = command_text
+            .lines()
             .map(|line| line.trim())
             .filter(|line| !line.is_empty() && !line.starts_with('#'))
             .collect();
-        
+
         if lines.len() <= 1 {
             return None; // Not a multi-step command
         }
-        
+
         let mut steps = Vec::new();
         for (index, line) in lines.iter().enumerate() {
             // Check if this step depends on the previous one
-            let depends_on_previous = line.contains("&&") || 
-                                    (index > 0 && !line.contains("||") && !line.contains(";"));
-            
+            let depends_on_previous =
+                line.contains("&&") || (index > 0 && !line.contains("||") && !line.contains(";"));
+
             steps.push(ExecutableStep {
                 command: line.to_string(),
-                description: format!("Step {}: {}", index + 1, 
-                    if line.len() > 50 { 
-                        format!("{}...", &line[..47]) 
-                    } else { 
-                        line.to_string() 
+                description: format!(
+                    "Step {}: {}",
+                    index + 1,
+                    if line.len() > 50 {
+                        format!("{}...", &line[..47])
+                    } else {
+                        line.to_string()
                     }
                 ),
                 step_number: index + 1,
@@ -71,14 +74,14 @@ impl MultiStepHandler {
                 execution_mode: None,
             });
         }
-        
+
         Some(Self {
             total_steps: steps.len(),
             current_step: 0,
             steps,
         })
     }
-    
+
     /// Get the next step to execute
     pub fn get_next_step(&mut self) -> Option<&mut ExecutableStep> {
         if self.current_step < self.steps.len() {
@@ -87,40 +90,43 @@ impl MultiStepHandler {
             None
         }
     }
-    
+
     /// Mark current step as completed and move to next
     pub fn complete_current_step(&mut self, success: bool) -> bool {
         if self.current_step < self.steps.len() {
             self.current_step += 1;
-            
+
             // If step failed and next step depends on it, skip remaining steps
             if !success && self.current_step < self.steps.len() {
                 if self.steps[self.current_step].depends_on_previous {
                     return false; // Stop execution
                 }
             }
-            
+
             true
         } else {
             false
         }
     }
-    
+
     /// Check if there are more steps to execute
     pub fn has_more_steps(&self) -> bool {
         self.current_step < self.steps.len()
     }
-    
+
     /// Get progress information
     pub fn get_progress(&self) -> (usize, usize) {
         (self.current_step, self.total_steps)
     }
-    
+
     /// Format steps for display
     pub fn format_steps_for_display(&self) -> String {
         let mut output = String::new();
-        output.push_str(&format!("Multi-step execution ({} steps):\n", self.total_steps));
-        
+        output.push_str(&format!(
+            "Multi-step execution ({} steps):\n",
+            self.total_steps
+        ));
+
         for (index, step) in self.steps.iter().enumerate() {
             let status = if index < self.current_step {
                 "✓"
@@ -129,11 +135,13 @@ impl MultiStepHandler {
             } else {
                 " "
             };
-            
-            output.push_str(&format!("  {} Step {}: {}\n", 
-                status, step.step_number, step.description));
+
+            output.push_str(&format!(
+                "  {} Step {}: {}\n",
+                status, step.step_number, step.description
+            ));
         }
-        
+
         output
     }
 }
@@ -156,8 +164,10 @@ impl ExecutionMode {
                 }
             }
             ValidationResult::Invalid(_, errors) => {
-                let error_msg = format!("Command validation failed: {}", 
-                    errors.iter()
+                let error_msg = format!(
+                    "Command validation failed: {}",
+                    errors
+                        .iter()
                         .map(|e| format!("{:?}", e))
                         .collect::<Vec<_>>()
                         .join(", ")
@@ -165,11 +175,16 @@ impl ExecutionMode {
                 ExecutionMode::Blocked(error_msg)
             }
             ValidationResult::Sensitive(_, warnings) => {
-                let reasons: Vec<String> = warnings.iter()
+                let reasons: Vec<String> = warnings
+                    .iter()
                     .map(|w| match w {
                         SecurityWarning::DataLoss(msg) => format!("Data Loss Risk: {}", msg),
-                        SecurityWarning::SystemModification(msg) => format!("System Modification: {}", msg),
-                        SecurityWarning::DangerousPattern(msg) => format!("Dangerous Pattern: {}", msg),
+                        SecurityWarning::SystemModification(msg) => {
+                            format!("System Modification: {}", msg)
+                        }
+                        SecurityWarning::DangerousPattern(msg) => {
+                            format!("Dangerous Pattern: {}", msg)
+                        }
                     })
                     .collect();
 
@@ -177,8 +192,13 @@ impl ExecutionMode {
                 match config.safety_level {
                     SafetyLevel::High => {
                         // High safety: block some dangerous commands entirely
-                        if warnings.iter().any(|w| matches!(w, SecurityWarning::DangerousPattern(_))) {
-                            ExecutionMode::Blocked("Command blocked due to high safety level".to_string())
+                        if warnings
+                            .iter()
+                            .any(|w| matches!(w, SecurityWarning::DangerousPattern(_)))
+                        {
+                            ExecutionMode::Blocked(
+                                "Command blocked due to high safety level".to_string(),
+                            )
                         } else {
                             ExecutionMode::RequiresConfirmation(reasons)
                         }
@@ -190,7 +210,7 @@ impl ExecutionMode {
             }
         }
     }
-    
+
     /// Determine execution mode for multi-step commands
     pub fn determine_multi_step(_config: &Config, command_text: &str) -> Self {
         if let Some(handler) = MultiStepHandler::parse_multi_step_command(command_text) {
@@ -203,18 +223,19 @@ impl ExecutionMode {
 
     /// Check if the command can be executed
     pub fn can_execute(&self) -> bool {
-        matches!(self, 
-            ExecutionMode::Safe | 
-            ExecutionMode::RequiresConfirmation(_) |
-            ExecutionMode::MultiStep(_)
+        matches!(
+            self,
+            ExecutionMode::Safe
+                | ExecutionMode::RequiresConfirmation(_)
+                | ExecutionMode::MultiStep(_)
         )
     }
 
     /// Check if confirmation is required
     pub fn requires_confirmation(&self) -> bool {
-        matches!(self, 
-            ExecutionMode::RequiresConfirmation(_) |
-            ExecutionMode::MultiStep(_)
+        matches!(
+            self,
+            ExecutionMode::RequiresConfirmation(_) | ExecutionMode::MultiStep(_)
         )
     }
 
@@ -227,7 +248,7 @@ impl ExecutionMode {
     pub fn is_blocked(&self) -> bool {
         matches!(self, ExecutionMode::Blocked(_))
     }
-    
+
     /// Check if this is multi-step execution
     pub fn is_multi_step(&self) -> bool {
         matches!(self, ExecutionMode::MultiStep(_))
@@ -242,7 +263,7 @@ impl ExecutionMode {
             _ => None,
         }
     }
-    
+
     /// Get the block reason if command is blocked
     pub fn get_block_reason(&self) -> Option<String> {
         match self {
@@ -271,12 +292,12 @@ impl ExecutableCommand {
             warnings: Vec::new(),
         }
     }
-    
+
     /// Add a warning to the command
     pub fn add_warning(&mut self, warning: String) {
         self.warnings.push(warning);
     }
-    
+
     /// Get execution instructions for display
     pub fn get_execution_instructions(&self) -> Option<String> {
         match &self.execution_mode {
@@ -286,9 +307,7 @@ impl ExecutableCommand {
             ExecutionMode::DryRunOnly => {
                 Some("This is a dry run. Remove --dry-run flag to execute".to_string())
             }
-            ExecutionMode::Blocked(reason) => {
-                Some(format!("Command blocked: {}", reason))
-            }
+            ExecutionMode::Blocked(reason) => Some(format!("Command blocked: {}", reason)),
             ExecutionMode::RequiresConfirmation(_) => {
                 Some("Use --auto-execute to run without confirmation".to_string())
             }
@@ -298,7 +317,7 @@ impl ExecutableCommand {
             ExecutionMode::Safe => None, // No instructions needed for safe execution
         }
     }
-    
+
     /// Get the command explanation
     pub fn get_explanation(&self) -> &str {
         &self.explanation
@@ -320,7 +339,7 @@ mod tests {
         let multi_cmd = "mkdir test-project\ncd test-project\ngit init\necho 'Hello World' > README.md\ngit add README.md\ngit commit -m 'Initial commit'";
         let handler = MultiStepHandler::parse_multi_step_command(multi_cmd);
         assert!(handler.is_some());
-        
+
         let handler = handler.unwrap();
         assert_eq!(handler.total_steps, 6);
         assert_eq!(handler.current_step, 0);
@@ -328,12 +347,12 @@ mod tests {
         // Test 3: Empty command
         let empty_cmd = "";
         assert!(MultiStepHandler::parse_multi_step_command(empty_cmd).is_none());
-        
+
         // Test 4: Comments should be filtered
         let commented_cmd = "# This is a comment\nmkdir test\n# Another comment\ncd test";
         let handler = MultiStepHandler::parse_multi_step_command(commented_cmd);
         assert!(handler.is_some());
-        
+
         let handler = handler.unwrap();
         assert_eq!(handler.total_steps, 2); // Only non-comment lines
     }
@@ -342,27 +361,27 @@ mod tests {
     fn test_multi_step_progress() {
         let multi_cmd = "mkdir test\ncd test\ntouch file.txt";
         let mut handler = MultiStepHandler::parse_multi_step_command(multi_cmd).unwrap();
-        
+
         // Initial state
         assert_eq!(handler.get_progress(), (0, 3));
         assert!(handler.has_more_steps());
-        
+
         // Get first step
         let step = handler.get_next_step();
         assert!(step.is_some());
         assert_eq!(step.unwrap().command, "mkdir test");
-        
+
         // Complete first step
         assert!(handler.complete_current_step(true));
         assert_eq!(handler.get_progress(), (1, 3));
-        
+
         // Complete remaining steps
         assert!(handler.complete_current_step(true));
         assert_eq!(handler.get_progress(), (2, 3));
-        
+
         assert!(handler.complete_current_step(true));
         assert_eq!(handler.get_progress(), (3, 3));
-        
+
         // No more steps
         assert!(!handler.has_more_steps());
         assert!(!handler.complete_current_step(true));
@@ -371,18 +390,18 @@ mod tests {
     #[test]
     fn test_execution_mode_multi_step() {
         let config = Config::load();
-        
+
         // Test multi-step detection
         let multi_cmd = "mkdir test\ncd test\ntouch file.txt";
         let mode = ExecutionMode::determine_multi_step(&config, multi_cmd);
-        
+
         match mode {
             ExecutionMode::MultiStep(steps) => {
                 assert_eq!(steps.len(), 3);
             }
             _ => panic!("Expected MultiStep mode"),
         }
-        
+
         // Test single command fallback
         let single_cmd = "ls -la";
         let mode = ExecutionMode::determine_multi_step(&config, single_cmd);

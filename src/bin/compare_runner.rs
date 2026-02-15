@@ -217,7 +217,10 @@ async fn main() -> Result<()> {
     for r in &rows {
         md.push_str(&format!("### {}. [{}]\n\n", r.id, r.category));
         md.push_str(&format!("**Prompt:** {}\n\n", r.prompt));
-        md.push_str(&format!("**Local ({:}ms)**\n\n```\n{}\n```\n\n", r.local_ms, r.local_response));
+        md.push_str(&format!(
+            "**Local ({:}ms)**\n\n```\n{}\n```\n\n",
+            r.local_ms, r.local_response
+        ));
         if let (Some(ms), Some(resp)) = (r.cloud_ms, r.cloud_response.as_deref()) {
             md.push_str(&format!("**Cloud ({:}ms)**\n\n```\n{}\n```\n\n", ms, resp));
         } else {
@@ -230,4 +233,3 @@ async fn main() -> Result<()> {
     println!("Saved report to {}", out_path.display());
     Ok(())
 }
-

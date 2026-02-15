@@ -122,7 +122,7 @@ impl ApiKeyManager {
     pub async fn test_key(&self, provider: &str) -> Result<bool> {
         let api_key = self.get_key(provider)?;
         let providers = Self::get_supported_providers();
-        
+
         let _provider_config = providers
             .get(provider)
             .ok_or_else(|| anyhow!("Unsupported provider: {}", provider))?;
@@ -130,7 +130,10 @@ impl ApiKeyManager {
         match provider {
             "openai" => self.test_openai_key(&api_key).await,
             "anthropic" => self.test_anthropic_key(&api_key).await,
-            _ => Err(anyhow!("Testing not implemented for provider: {}", provider)),
+            _ => Err(anyhow!(
+                "Testing not implemented for provider: {}",
+                provider
+            )),
         }
     }
 

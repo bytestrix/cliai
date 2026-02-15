@@ -1,8 +1,7 @@
 use regex::Regex;
 
 /// Quoting and escaping utilities for shell commands
-pub struct QuotingCorrector {
-}
+pub struct QuotingCorrector {}
 
 /// Result of quoting analysis
 #[derive(Debug, Clone)]
@@ -34,8 +33,7 @@ pub enum QuotingIssue {
 #[allow(dead_code)]
 impl QuotingCorrector {
     pub fn new() -> Self {
-        Self {
-        }
+        Self {}
     }
 
     /// Analyze and correct quoting issues in a command
@@ -44,7 +42,7 @@ impl QuotingCorrector {
         let corrections = Vec::new();
         let corrected = command.to_string();
 
-        /* 
+        /*
         // Temporarily disabled due to aggressive quoting of flags and commands
         if let Some((fixed, correction)) = self.fix_unquoted_spaces(&corrected) {
             corrected = fixed;
@@ -69,16 +67,20 @@ impl QuotingCorrector {
         // Simple pattern: look for unquoted sequences with spaces
         // Note: look-arounds are not supported by the Rust regex crate
         let space_pattern = Regex::new(r#"(?:\s|^)([^\s"']+\s+[^\s"']+)(?:\s|$)"#).unwrap();
-        
+
         if let Some(captures) = space_pattern.captures(command) {
             if let Some(unquoted) = captures.get(1) {
                 let quoted = format!("'{}'", unquoted.as_str());
                 let fixed = command.replace(unquoted.as_str(), &quoted);
-                let correction = format!("Quoted path with spaces: {} -> {}", unquoted.as_str(), quoted);
+                let correction = format!(
+                    "Quoted path with spaces: {} -> {}",
+                    unquoted.as_str(),
+                    quoted
+                );
                 return Some((fixed, correction));
             }
         }
-        
+
         None
     }
 

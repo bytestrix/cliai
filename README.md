@@ -1,5 +1,10 @@
 # CLIAI 🤖
 
+[![CI](https://github.com/cliai-team/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/cliai-team/cliai/actions/workflows/ci.yml)
+[![Documentation](https://github.com/cliai-team/cliai/actions/workflows/docs.yml/badge.svg)](https://cliai-team.github.io/cliai/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Crates.io](https://img.shields.io/crates/v/cliai.svg)](https://crates.io/crates/cliai)
+
 **Your intelligent CLI assistant powered by AI**
 
 CLIAI is a completely free and open-source command-line AI assistant that helps you with terminal commands, system administration, and general questions. Use your own API keys (OpenAI, Anthropic, etc.) or run locally with Ollama for maximum privacy.
@@ -395,6 +400,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
+- **Documentation**: [https://cliai-team.github.io/cliai/](https://cliai-team.github.io/cliai/)
 - **Issues**: [GitHub Issues](https://github.com/cliai-team/cliai/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/cliai-team/cliai/discussions)
 - **Wiki**: [GitHub Wiki](https://github.com/cliai-team/cliai/wiki)

@@ -38,9 +38,13 @@ impl IntentClassifier {
     pub fn new() -> Self {
         let explanatory_patterns = vec![
             // Learning patterns - these are clearly explanatory
-            Regex::new("\\b(explain|teach me|help me understand|tutorial|guide|example|demonstration)\\b").unwrap(),
+            Regex::new(
+                "\\b(explain|teach me|help me understand|tutorial|guide|example|demonstration)\\b",
+            )
+            .unwrap(),
             Regex::new("\\b(what does .* do|how does .* work)\\b").unwrap(),
-            Regex::new("\\b(what is|what are|what's the difference|difference between)\\b").unwrap(),
+            Regex::new("\\b(what is|what are|what's the difference|difference between)\\b")
+                .unwrap(),
             // Conceptual questions
             Regex::new("\\b(why does|why is|why would|purpose of|meaning of)\\b").unwrap(),
             // How-to questions that are clearly educational
@@ -143,7 +147,9 @@ impl IntentClassifier {
         // "Vague" requests should generally be treated as ambiguous, even if they contain an action verb.
         // Examples: "install something", "delete stuff", "do anything".
         let vague_indicators = ["something", "anything", "stuff", "things"];
-        let is_vague = vague_indicators.iter().any(|indicator| normalized.contains(indicator));
+        let is_vague = vague_indicators
+            .iter()
+            .any(|indicator| normalized.contains(indicator));
 
         // Very short / vague requests should be treated as ambiguous.
         // This avoids defaulting to Actionable for inputs like "files", "git", "python script".
@@ -151,8 +157,14 @@ impl IntentClassifier {
         if word_count <= 2 && !normalized.ends_with('?') {
             // If it's not clearly actionable or explanatory, ask for clarification.
             // We still compute scores below; this is an early safe-guard for extreme brevity.
-            let has_strong_explanatory = self.explanatory_patterns.iter().any(|p| p.is_match(&normalized));
-            let has_strong_actionable = self.actionable_patterns.iter().any(|p| p.is_match(&normalized));
+            let has_strong_explanatory = self
+                .explanatory_patterns
+                .iter()
+                .any(|p| p.is_match(&normalized));
+            let has_strong_actionable = self
+                .actionable_patterns
+                .iter()
+                .any(|p| p.is_match(&normalized));
             if !has_strong_explanatory && !has_strong_actionable {
                 return IntentAnalysis {
                     intent: UserIntent::Ambiguous,
@@ -162,7 +174,7 @@ impl IntentClassifier {
                 };
             }
         }
-        
+
         // Check for strong patterns first
         let explanatory_score = self.calculate_explanatory_score(&normalized);
         let actionable_score = self.calculate_actionable_score(&normalized);
@@ -179,36 +191,49 @@ impl IntentClassifier {
                 clarification_needed: Some(self.generate_clarification_prompt(&normalized)),
             };
         }
-        
+
         // Determine intent based on scores with a lower threshold for better detection
-        let (intent, confidence, reasoning) = if explanatory_score > actionable_score + 0.2 && explanatory_score > 0.4 {
-            (
-                UserIntent::Explanatory,
-                explanatory_score,
-                format!("Request contains explanatory patterns (score: {:.2})", explanatory_score)
-            )
-        } else if actionable_score > explanatory_score + 0.1 && actionable_score > 0.2 {
-            (
-                UserIntent::Actionable,
-                actionable_score,
-                format!("Request contains actionable patterns (score: {:.2})", actionable_score)
-            )
-        } else {
-            // Default to actionable for ambiguous cases unless clearly explanatory
-            if explanatory_score > 0.3 {
+        let (intent, confidence, reasoning) =
+            if explanatory_score > actionable_score + 0.2 && explanatory_score > 0.4 {
                 (
                     UserIntent::Explanatory,
                     explanatory_score,
-                    format!("Defaulting to explanatory due to patterns (score: {:.2})", explanatory_score)
+                    format!(
+                        "Request contains explanatory patterns (score: {:.2})",
+                        explanatory_score
+                    ),
                 )
-            } else {
+            } else if actionable_score > explanatory_score + 0.1 && actionable_score > 0.2 {
                 (
                     UserIntent::Actionable,
-                    0.5,
-                    format!("Defaulting to actionable - explanatory: {:.2}, actionable: {:.2}", explanatory_score, actionable_score)
+                    actionable_score,
+                    format!(
+                        "Request contains actionable patterns (score: {:.2})",
+                        actionable_score
+                    ),
                 )
-            }
-        };
+            } else {
+                // Default to actionable for ambiguous cases unless clearly explanatory
+                if explanatory_score > 0.3 {
+                    (
+                        UserIntent::Explanatory,
+                        explanatory_score,
+                        format!(
+                            "Defaulting to explanatory due to patterns (score: {:.2})",
+                            explanatory_score
+                        ),
+                    )
+                } else {
+                    (
+                        UserIntent::Actionable,
+                        0.5,
+                        format!(
+                            "Defaulting to actionable - explanatory: {:.2}, actionable: {:.2}",
+                            explanatory_score, actionable_score
+                        ),
+                    )
+                }
+            };
 
         // Check for clarification needs
         let clarification_needed = if intent == UserIntent::Ambiguous {
@@ -228,13 +253,13 @@ impl IntentClassifier {
     /// Check if a request involves destructive actions
     pub fn is_destructive_action(&self, request: &str) -> bool {
         let normalized = request.to_lowercase();
-        
+
         for pattern in &self.destructive_patterns {
             if pattern.is_match(&normalized) {
                 return true;
             }
         }
-        
+
         false
     }
 
@@ -247,33 +272,34 @@ impl IntentClassifier {
         } else if request.contains("delete") || request.contains("remove") {
             "Do you want me to:\n1. Explain how deletion/removal works, or\n2. Actually delete/remove something?\n\n⚠️  If you want actual deletion, please be specific about what to delete.".to_string()
         } else {
-            "Do you want me to:\n1. Explain how to do this, or\n2. Actually perform the action?".to_string()
+            "Do you want me to:\n1. Explain how to do this, or\n2. Actually perform the action?"
+                .to_string()
         }
     }
 
     /// Calculate explanatory intent score
     fn calculate_explanatory_score(&self, request: &str) -> f32 {
         let mut score: f32 = 0.0;
-        
+
         // Check patterns (high weight)
         for pattern in &self.explanatory_patterns {
             if pattern.is_match(request) {
                 score += 0.5; // Increased weight for patterns
             }
         }
-        
+
         // Check keywords (medium weight)
         for keyword in &self.explanatory_keywords {
             if request.contains(keyword) {
                 score += 0.3; // Increased weight for keywords
             }
         }
-        
+
         // Question marks are strong indicators
         if request.ends_with('?') {
             score += 0.4; // Increased weight for question marks
         }
-        
+
         // Normalize score to 0-1 range
         score.min(1.0)
     }
@@ -281,11 +307,13 @@ impl IntentClassifier {
     /// Calculate actionable intent score
     fn calculate_actionable_score(&self, request: &str) -> f32 {
         let mut score: f32 = 0.0;
-        
+
         // Check for vague requests first - these should be ambiguous
         let vague_indicators = ["something", "anything", "stuff", "things"];
-        let is_vague = vague_indicators.iter().any(|indicator| request.contains(indicator));
-        
+        let is_vague = vague_indicators
+            .iter()
+            .any(|indicator| request.contains(indicator));
+
         // Check patterns (high weight)
         for pattern in &self.actionable_patterns {
             if pattern.is_match(request) {
@@ -296,7 +324,7 @@ impl IntentClassifier {
                 }
             }
         }
-        
+
         // Check keywords (medium weight) - but be more selective
         for keyword in &self.actionable_keywords {
             if request.contains(keyword) {
@@ -307,18 +335,22 @@ impl IntentClassifier {
                 }
             }
         }
-        
+
         // Imperative mood indicators
-        if request.starts_with("please") || request.contains("i want") || request.contains("i need") {
+        if request.starts_with("please") || request.contains("i want") || request.contains("i need")
+        {
             if is_vague {
                 score += 0.1; // Lower weight for vague requests
             } else {
                 score += 0.3; // Increased weight
             }
         }
-        
+
         // Direct action verbs at the start get high score
-        let action_starters = ["create", "make", "build", "install", "remove", "delete", "copy", "move", "rename", "run", "execute", "start", "stop", "find", "search", "list", "show", "display"];
+        let action_starters = [
+            "create", "make", "build", "install", "remove", "delete", "copy", "move", "rename",
+            "run", "execute", "start", "stop", "find", "search", "list", "show", "display",
+        ];
         let first_word = request.split_whitespace().next().unwrap_or("");
         if action_starters.contains(&first_word) {
             if is_vague {
@@ -327,23 +359,32 @@ impl IntentClassifier {
                 score += 0.5; // High score for direct action verbs
             }
         }
-        
+
         // Normalize score to 0-1 range
         score.min(1.0)
     }
 
     /// Validate that a command is appropriate for the detected intent
-    pub fn validate_command_for_intent(&self, command: &str, intent: &UserIntent) -> Result<(), String> {
+    pub fn validate_command_for_intent(
+        &self,
+        command: &str,
+        intent: &UserIntent,
+    ) -> Result<(), String> {
         match intent {
             UserIntent::Explanatory => {
                 // For explanatory requests, commands should be safe and non-destructive
                 if self.is_destructive_command(command) {
-                    return Err("Destructive commands are not appropriate for explanatory requests".to_string());
+                    return Err(
+                        "Destructive commands are not appropriate for explanatory requests"
+                            .to_string(),
+                    );
                 }
-                
+
                 // Commands should be informational or demonstrative
                 if !self.is_informational_command(command) {
-                    return Err("Command should be informational for explanatory requests".to_string());
+                    return Err(
+                        "Command should be informational for explanatory requests".to_string()
+                    );
                 }
             }
             UserIntent::Actionable => {
@@ -356,53 +397,112 @@ impl IntentClassifier {
             UserIntent::Ambiguous => {
                 // For ambiguous requests, prefer safe commands
                 if self.is_destructive_command(command) {
-                    return Err("Cannot suggest destructive commands for ambiguous requests".to_string());
+                    return Err(
+                        "Cannot suggest destructive commands for ambiguous requests".to_string()
+                    );
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Check if a command is destructive
     fn is_destructive_command(&self, command: &str) -> bool {
         let destructive_commands = [
-            "rm -rf", "rm -r", "rmdir", "delete", "format", "mkfs", "dd if=", "fdisk",
-            "chmod 777", "chown -R", "> /dev/", "truncate", "shred"
+            "rm -rf",
+            "rm -r",
+            "rmdir",
+            "delete",
+            "format",
+            "mkfs",
+            "dd if=",
+            "fdisk",
+            "chmod 777",
+            "chown -R",
+            "> /dev/",
+            "truncate",
+            "shred",
         ];
-        
+
         let normalized = command.to_lowercase();
-        destructive_commands.iter().any(|cmd| normalized.contains(cmd))
+        destructive_commands
+            .iter()
+            .any(|cmd| normalized.contains(cmd))
     }
 
     /// Check if a command is informational (safe for explanatory purposes)
     fn is_informational_command(&self, command: &str) -> bool {
         let informational_commands = [
-            "ls", "cat", "head", "tail", "grep", "find", "which", "whereis",
-            "ps", "top", "df", "du", "free", "uname", "whoami", "id", "pwd",
-            "git", "stat", "file", "wc", "sort", "uniq", "awk", "sed", 
-            "echo", "printf", "date", "cal", "uptime", "lsof", "netstat", "ss",
-            "systemctl", "service", "rustc", "cargo", "node", "npm", "python",
-            "java", "javac", "gcc", "make", "cmake", "zip", "tar", "gzip"
+            "ls",
+            "cat",
+            "head",
+            "tail",
+            "grep",
+            "find",
+            "which",
+            "whereis",
+            "ps",
+            "top",
+            "df",
+            "du",
+            "free",
+            "uname",
+            "whoami",
+            "id",
+            "pwd",
+            "git",
+            "stat",
+            "file",
+            "wc",
+            "sort",
+            "uniq",
+            "awk",
+            "sed",
+            "echo",
+            "printf",
+            "date",
+            "cal",
+            "uptime",
+            "lsof",
+            "netstat",
+            "ss",
+            "systemctl",
+            "service",
+            "rustc",
+            "cargo",
+            "node",
+            "npm",
+            "python",
+            "java",
+            "javac",
+            "gcc",
+            "make",
+            "cmake",
+            "zip",
+            "tar",
+            "gzip",
         ];
-        
+
         let first_word = command.split_whitespace().next().unwrap_or("");
-        
+
         // Allow informational commands
         if informational_commands.iter().any(|cmd| first_word == *cmd) {
             return true;
         }
-        
+
         // Allow compound commands with informational parts
         if command.contains(" | ") || command.contains(" && ") || command.contains(" || ") {
             // Check if all parts are informational
             let parts: Vec<&str> = command.split(&[' ', '|', '&'][..]).collect();
             return parts.iter().any(|part| {
                 let trimmed = part.trim();
-                informational_commands.iter().any(|cmd| trimmed.starts_with(cmd))
+                informational_commands
+                    .iter()
+                    .any(|cmd| trimmed.starts_with(cmd))
             });
         }
-        
+
         false
     }
 }
@@ -420,7 +520,7 @@ mod tests {
     #[test]
     fn test_explanatory_intent_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let explanatory_requests = vec![
             "How do I create a file?",
             "What does ls -la do?",
@@ -431,18 +531,22 @@ mod tests {
             "Can you explain how pipes work?",
             "What are the options for find command?",
         ];
-        
+
         for request in explanatory_requests {
             let analysis = classifier.classify_intent(request);
-            assert_eq!(analysis.intent, UserIntent::Explanatory, 
-                      "Request '{}' should be classified as explanatory", request);
+            assert_eq!(
+                analysis.intent,
+                UserIntent::Explanatory,
+                "Request '{}' should be classified as explanatory",
+                request
+            );
         }
     }
 
     #[test]
     fn test_actionable_intent_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let actionable_requests = vec![
             "Create a file named test.txt",
             "Install vim",
@@ -455,18 +559,22 @@ mod tests {
             "Run the build script",
             "Start the web server",
         ];
-        
+
         for request in actionable_requests {
             let analysis = classifier.classify_intent(request);
-            assert_eq!(analysis.intent, UserIntent::Actionable, 
-                      "Request '{}' should be classified as actionable", request);
+            assert_eq!(
+                analysis.intent,
+                UserIntent::Actionable,
+                "Request '{}' should be classified as actionable",
+                request
+            );
         }
     }
 
     #[test]
     fn test_ambiguous_intent_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let ambiguous_requests = vec![
             "files",
             "git",
@@ -474,11 +582,15 @@ mod tests {
             "database connection",
             "server configuration",
         ];
-        
+
         for request in ambiguous_requests {
             let analysis = classifier.classify_intent(request);
-            assert_eq!(analysis.intent, UserIntent::Ambiguous, 
-                      "Request '{}' should be classified as ambiguous", request);
+            assert_eq!(
+                analysis.intent,
+                UserIntent::Ambiguous,
+                "Request '{}' should be classified as ambiguous",
+                request
+            );
             assert!(analysis.clarification_needed.is_some());
         }
     }
@@ -486,7 +598,7 @@ mod tests {
     #[test]
     fn test_destructive_action_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let destructive_requests = vec![
             "Delete all files",
             "Remove everything in the directory",
@@ -496,29 +608,33 @@ mod tests {
             "Drop the database",
             "Factory reset the system",
         ];
-        
+
         for request in destructive_requests {
-            assert!(classifier.is_destructive_action(request), 
-                   "Request '{}' should be detected as destructive", request);
+            assert!(
+                classifier.is_destructive_action(request),
+                "Request '{}' should be detected as destructive",
+                request
+            );
         }
     }
 
     #[test]
     fn test_command_validation_for_intent() {
         let classifier = IntentClassifier::new();
-        
+
         // Explanatory intent should reject destructive commands
-        let result = classifier.validate_command_for_intent("rm -rf /tmp", &UserIntent::Explanatory);
+        let result =
+            classifier.validate_command_for_intent("rm -rf /tmp", &UserIntent::Explanatory);
         assert!(result.is_err());
-        
+
         // Explanatory intent should accept informational commands
         let result = classifier.validate_command_for_intent("ls -la", &UserIntent::Explanatory);
         assert!(result.is_ok());
-        
+
         // Actionable intent should flag destructive commands
         let result = classifier.validate_command_for_intent("rm -rf /tmp", &UserIntent::Actionable);
         assert!(result.is_err());
-        
+
         // Actionable intent should accept safe commands
         let result = classifier.validate_command_for_intent("mkdir test", &UserIntent::Actionable);
         assert!(result.is_ok());
@@ -527,7 +643,7 @@ mod tests {
     #[test]
     fn test_informational_command_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let informational_commands = vec![
             "ls -la",
             "cat file.txt",
@@ -537,29 +653,35 @@ mod tests {
             "df -h",
             "git status",
         ];
-        
+
         for cmd in informational_commands {
-            assert!(classifier.is_informational_command(cmd), 
-                   "Command '{}' should be informational", cmd);
+            assert!(
+                classifier.is_informational_command(cmd),
+                "Command '{}' should be informational",
+                cmd
+            );
         }
-        
+
         let non_informational_commands = vec![
             "rm file.txt",
             "mkdir test",
             "cp file1 file2",
             "chmod 755 file",
         ];
-        
+
         for cmd in non_informational_commands {
-            assert!(!classifier.is_informational_command(cmd), 
-                   "Command '{}' should not be informational", cmd);
+            assert!(
+                !classifier.is_informational_command(cmd),
+                "Command '{}' should not be informational",
+                cmd
+            );
         }
     }
 
     #[test]
     fn test_destructive_command_detection() {
         let classifier = IntentClassifier::new();
-        
+
         let destructive_commands = vec![
             "rm -rf /tmp",
             "rm -r directory",
@@ -567,12 +689,15 @@ mod tests {
             "dd if=/dev/zero of=/dev/sda",
             "mkfs.ext4 /dev/sdb1",
         ];
-        
+
         for cmd in destructive_commands {
-            assert!(classifier.is_destructive_command(cmd), 
-                   "Command '{}' should be destructive", cmd);
+            assert!(
+                classifier.is_destructive_command(cmd),
+                "Command '{}' should be destructive",
+                cmd
+            );
         }
-        
+
         let safe_commands = vec![
             "ls -la",
             "cat file.txt",
@@ -580,42 +705,51 @@ mod tests {
             "cp file1 file2",
             "chmod 644 file",
         ];
-        
+
         for cmd in safe_commands {
-            assert!(!classifier.is_destructive_command(cmd), 
-                   "Command '{}' should not be destructive", cmd);
+            assert!(
+                !classifier.is_destructive_command(cmd),
+                "Command '{}' should not be destructive",
+                cmd
+            );
         }
     }
 
     #[test]
     fn test_clarification_prompt_generation() {
         let classifier = IntentClassifier::new();
-        
+
         let analysis = classifier.classify_intent("file operations");
         assert_eq!(analysis.intent, UserIntent::Ambiguous);
         assert!(analysis.clarification_needed.is_some());
-        assert!(analysis.clarification_needed.unwrap().contains("files/directories"));
-        
+        assert!(analysis
+            .clarification_needed
+            .unwrap()
+            .contains("files/directories"));
+
         let analysis = classifier.classify_intent("install something");
         assert_eq!(analysis.intent, UserIntent::Ambiguous);
         assert!(analysis.clarification_needed.is_some());
-        assert!(analysis.clarification_needed.unwrap().contains("install/setup"));
+        assert!(analysis
+            .clarification_needed
+            .unwrap()
+            .contains("install/setup"));
     }
 
     #[test]
     fn test_confidence_scoring() {
         let classifier = IntentClassifier::new();
-        
+
         // High confidence explanatory
         let analysis = classifier.classify_intent("How do I create a file?");
         assert_eq!(analysis.intent, UserIntent::Explanatory);
         assert!(analysis.confidence > 0.7);
-        
+
         // High confidence actionable
         let analysis = classifier.classify_intent("Create a file named test.txt");
         assert_eq!(analysis.intent, UserIntent::Actionable);
         assert!(analysis.confidence > 0.7);
-        
+
         // Low confidence (ambiguous)
         let analysis = classifier.classify_intent("files");
         assert_eq!(analysis.intent, UserIntent::Ambiguous);

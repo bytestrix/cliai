@@ -1,8 +1,8 @@
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use anyhow::{Result, anyhow};
 
 /// Operating system types with primary focus on Linux distributions
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -11,19 +11,19 @@ pub enum OSType {
     Ubuntu,
     Debian,
     // Non-Linux support is best-effort in v1.0
-    MacOS,      // Limited support
-    Windows,    // Limited support
+    MacOS,   // Limited support
+    Windows, // Limited support
     Unknown,
 }
 
 /// Package manager types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PackageManager {
-    Pacman,     // Arch Linux
-    Apt,        // Ubuntu/Debian
+    Pacman, // Arch Linux
+    Apt,    // Ubuntu/Debian
     // Limited support for others in v1.0
-    Yum,        // Best-effort
-    Brew,       // Best-effort
+    Yum,  // Best-effort
+    Brew, // Best-effort
     Unknown,
 }
 
@@ -70,10 +70,10 @@ impl OSContext {
 
         // Perform fresh detection
         let context = Self::perform_detection();
-        
+
         // Cache the result for future use
         let _ = context.save_cache();
-        
+
         context
     }
 
@@ -175,7 +175,7 @@ impl OSContext {
                 return Shell::Sh;
             }
         }
-        
+
         // Default to bash on Unix-like systems
         if cfg!(unix) {
             Shell::Bash
@@ -256,8 +256,7 @@ impl OSContext {
                 if let Ok(os_release) = fs::read_to_string("/etc/os-release") {
                     for line in os_release.lines() {
                         if line.starts_with("PRETTY_NAME=") {
-                            let name = line.trim_start_matches("PRETTY_NAME=")
-                                .trim_matches('"');
+                            let name = line.trim_start_matches("PRETTY_NAME=").trim_matches('"');
                             return name.to_string();
                         }
                     }
@@ -288,7 +287,10 @@ impl OSContext {
             PackageManager::Apt => format!("sudo apt install {}", package),
             PackageManager::Yum => format!("sudo yum install {}", package),
             PackageManager::Brew => format!("brew install {}", package),
-            PackageManager::Unknown => format!("# Package manager not detected. Please install {} manually", package),
+            PackageManager::Unknown => format!(
+                "# Package manager not detected. Please install {} manually",
+                package
+            ),
         }
     }
 
@@ -310,7 +312,10 @@ impl OSContext {
             PackageManager::Apt => format!("apt search {}", query),
             PackageManager::Yum => format!("yum search {}", query),
             PackageManager::Brew => format!("brew search {}", query),
-            PackageManager::Unknown => format!("# Package manager not detected. Cannot search for {}", query),
+            PackageManager::Unknown => format!(
+                "# Package manager not detected. Cannot search for {}",
+                query
+            ),
         }
     }
 
@@ -414,7 +419,7 @@ impl ArchCommands {
     /// Detect available AUR helper
     fn detect_aur_helper() -> Option<String> {
         let helpers = ["yay", "paru", "trizen", "yaourt"];
-        
+
         for helper in &helpers {
             if Command::new("which").arg(helper).output().is_ok() {
                 return Some(helper.to_string());
@@ -428,7 +433,10 @@ impl ArchCommands {
         if let Some(helper) = &self.aur_helper {
             format!("{} -S {}", helper, package)
         } else {
-            format!("# No AUR helper detected. Install {} manually from AUR", package)
+            format!(
+                "# No AUR helper detected. Install {} manually from AUR",
+                package
+            )
         }
     }
 
@@ -437,7 +445,10 @@ impl ArchCommands {
         if let Some(helper) = &self.aur_helper {
             format!("{} -Ss {}", helper, query)
         } else {
-            format!("# No AUR helper detected. Search for {} manually on AUR", query)
+            format!(
+                "# No AUR helper detected. Search for {} manually on AUR",
+                query
+            )
         }
     }
 
@@ -489,7 +500,7 @@ mod tests {
     #[test]
     fn test_os_context_creation() {
         let context = OSContext::detect();
-        
+
         // Basic validation that detection works
         assert!(!context.version_info.is_empty());
         assert!(!context.architecture.is_empty());
@@ -499,27 +510,32 @@ mod tests {
     #[test]
     fn test_package_manager_commands() {
         let mut context = OSContext::detect();
-        
+
         // Test with different package managers
         context.package_manager = PackageManager::Pacman;
         assert_eq!(context.get_install_command("vim"), "sudo pacman -S vim");
         assert_eq!(context.get_package_search_command("vim"), "pacman -Ss vim");
         assert_eq!(context.get_update_command(), "sudo pacman -Syu");
-        
+
         context.package_manager = PackageManager::Apt;
         assert_eq!(context.get_install_command("vim"), "sudo apt install vim");
         assert_eq!(context.get_package_search_command("vim"), "apt search vim");
-        assert_eq!(context.get_update_command(), "sudo apt update && sudo apt upgrade");
+        assert_eq!(
+            context.get_update_command(),
+            "sudo apt update && sudo apt upgrade"
+        );
     }
 
     #[test]
     fn test_system_info_commands() {
         let mut context = OSContext::detect();
-        
+
         context.os_type = OSType::ArchLinux;
         assert!(context.get_system_info_command().contains("uname -a"));
-        assert!(context.get_system_info_command().contains("/etc/os-release"));
-        
+        assert!(context
+            .get_system_info_command()
+            .contains("/etc/os-release"));
+
         context.os_type = OSType::Ubuntu;
         assert!(context.get_system_info_command().contains("lsb_release"));
     }
@@ -528,10 +544,14 @@ mod tests {
     fn test_arch_specific_commands() {
         let mut context = OSContext::detect();
         context.os_type = OSType::ArchLinux;
-        
+
         if let Some(arch_commands) = context.get_arch_specific_commands() {
-            assert!(arch_commands.get_service_command("nginx", "start").contains("systemctl start nginx"));
-            assert!(arch_commands.get_package_info_command("vim").contains("pacman -Qi vim"));
+            assert!(arch_commands
+                .get_service_command("nginx", "start")
+                .contains("systemctl start nginx"));
+            assert!(arch_commands
+                .get_package_info_command("vim")
+                .contains("pacman -Qi vim"));
             assert!(!arch_commands.get_arch_info_commands().is_empty());
         }
     }
@@ -540,7 +560,7 @@ mod tests {
     fn test_config_path() {
         let context = OSContext::detect();
         let config_path = context.get_config_path();
-        
+
         assert!(config_path.to_string_lossy().contains("cliai"));
     }
 
@@ -548,11 +568,15 @@ mod tests {
     fn test_os_type_detection_logic() {
         // Test that OS detection doesn't panic
         let os_type = OSContext::detect_os_type();
-        
+
         // Should be one of the valid types
         match os_type {
-            OSType::ArchLinux | OSType::Ubuntu | OSType::Debian | 
-            OSType::MacOS | OSType::Windows | OSType::Unknown => {
+            OSType::ArchLinux
+            | OSType::Ubuntu
+            | OSType::Debian
+            | OSType::MacOS
+            | OSType::Windows
+            | OSType::Unknown => {
                 // Valid OS type detected
             }
         }
@@ -561,7 +585,7 @@ mod tests {
     #[test]
     fn test_shell_detection() {
         let shell = OSContext::detect_shell();
-        
+
         // Should be one of the valid shell types
         match shell {
             Shell::Bash | Shell::Zsh | Shell::Fish | Shell::Sh | Shell::Unknown => {
@@ -573,7 +597,7 @@ mod tests {
     #[test]
     fn test_system_paths() {
         let context = OSContext::detect();
-        
+
         // Paths should be valid
         assert!(context.paths.home_dir.exists() || context.paths.home_dir == PathBuf::from("/"));
         assert!(!context.paths.bin_dirs.is_empty());
@@ -583,9 +607,11 @@ mod tests {
     #[test]
     fn test_arch_commands_creation() {
         let arch_commands = ArchCommands::new();
-        
+
         // Should create without panicking
-        assert!(arch_commands.get_service_command("test", "start").contains("systemctl"));
+        assert!(arch_commands
+            .get_service_command("test", "start")
+            .contains("systemctl"));
         assert!(!arch_commands.get_arch_info_commands().is_empty());
     }
 
@@ -593,10 +619,10 @@ mod tests {
     fn test_cache_operations() {
         // Test that cache operations don't panic
         let _ = OSContext::clear_cache();
-        
+
         let context = OSContext::detect();
         let _ = context.save_cache();
-        
+
         // Try to load cached version
         let _ = OSContext::load_cached();
     }
@@ -605,10 +631,10 @@ mod tests {
     fn test_unknown_package_manager_handling() {
         let mut context = OSContext::detect();
         context.package_manager = PackageManager::Unknown;
-        
+
         let install_cmd = context.get_install_command("vim");
         assert!(install_cmd.contains("not detected"));
-        
+
         let search_cmd = context.get_package_search_command("vim");
         assert!(search_cmd.contains("not detected"));
     }
@@ -616,11 +642,11 @@ mod tests {
     #[test]
     fn test_aur_helper_commands() {
         let arch_commands = ArchCommands::new();
-        
+
         let install_cmd = arch_commands.get_aur_install_command("yay-bin");
         // Should either use detected helper or show manual instruction
         assert!(install_cmd.contains("yay-bin") || install_cmd.contains("AUR"));
-        
+
         let search_cmd = arch_commands.get_aur_search_command("browser");
         assert!(search_cmd.contains("browser") || search_cmd.contains("AUR"));
     }

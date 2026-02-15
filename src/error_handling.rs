@@ -1,6 +1,6 @@
+use crate::logging::{get_logger, LogCategory, LogContext};
 use colored::*;
 use std::fmt;
-use crate::logging::{get_logger, LogCategory, LogContext};
 
 /// Enhanced error handling with actionable suggestions
 #[derive(Debug, Clone)]
@@ -67,15 +67,15 @@ impl UserFriendlyError {
                     target_ms: None,
                     success: Some(false),
                 };
-                
+
                 let _ = logger_guard.log_error(
                     LogCategory::System,
-                    format!("{}: {}", format!("{:?}", self.error_type), self.message),
+                    format!("{:?}: {}", self.error_type, self.message),
                     Some(context),
                 );
             }
         }
-        
+
         let icon = match self.error_type {
             ErrorType::Connection => "🔌",
             ErrorType::Configuration => "⚙️",
@@ -102,11 +102,7 @@ impl UserFriendlyError {
             ErrorType::General => "Error",
         };
 
-        eprintln!("{} {}: {}", 
-            icon, 
-            error_title.bold().red(), 
-            self.message
-        );
+        eprintln!("{} {}: {}", icon, error_title.bold().red(), self.message);
 
         if !self.suggestions.is_empty() {
             eprintln!();
@@ -153,9 +149,10 @@ pub fn enhance_error(error: &anyhow::Error) -> UserFriendlyError {
     }
 
     // Model not found errors
-    if (error_msg.contains("model") && error_msg.contains("not found")) || 
-       error_msg.contains("no such model") || 
-       error_msg.contains("not found") && error_msg.contains("error") {
+    if (error_msg.contains("model") && error_msg.contains("not found"))
+        || error_msg.contains("no such model")
+        || error_msg.contains("not found") && error_msg.contains("error")
+    {
         return UserFriendlyError::new(
             ErrorType::Provider,
             "The requested AI model is not available".to_string(),
@@ -264,18 +261,15 @@ pub fn enhance_error(error: &anyhow::Error) -> UserFriendlyError {
 
     // Permission errors
     if error_msg.contains("permission denied") || error_msg.contains("access denied") {
-        return UserFriendlyError::new(
-            ErrorType::Permission,
-            "Permission denied".to_string(),
-        )
-        .with_suggestions(vec![
-            "Check file/directory permissions".to_string(),
-            "Try running with appropriate permissions".to_string(),
-            "Ensure you have write access to the target location".to_string(),
-            "Check if the file is being used by another process".to_string(),
-            "Verify you own the file or have necessary permissions".to_string(),
-        ])
-        .with_technical_details(error.to_string());
+        return UserFriendlyError::new(ErrorType::Permission, "Permission denied".to_string())
+            .with_suggestions(vec![
+                "Check file/directory permissions".to_string(),
+                "Try running with appropriate permissions".to_string(),
+                "Ensure you have write access to the target location".to_string(),
+                "Check if the file is being used by another process".to_string(),
+                "Verify you own the file or have necessary permissions".to_string(),
+            ])
+            .with_technical_details(error.to_string());
     }
 
     // File not found errors
@@ -312,33 +306,27 @@ pub fn enhance_error(error: &anyhow::Error) -> UserFriendlyError {
 
     // System errors
     if error_msg.contains("system") || error_msg.contains("os error") {
-        return UserFriendlyError::new(
-            ErrorType::System,
-            "System error occurred".to_string(),
-        )
-        .with_suggestions(vec![
-            "Check system resources (disk space, memory)".to_string(),
-            "Verify system permissions".to_string(),
-            "Try restarting the application".to_string(),
-            "Check system logs for more details".to_string(),
-            "Ensure system dependencies are installed".to_string(),
-        ])
-        .with_technical_details(error.to_string());
+        return UserFriendlyError::new(ErrorType::System, "System error occurred".to_string())
+            .with_suggestions(vec![
+                "Check system resources (disk space, memory)".to_string(),
+                "Verify system permissions".to_string(),
+                "Try restarting the application".to_string(),
+                "Check system logs for more details".to_string(),
+                "Ensure system dependencies are installed".to_string(),
+            ])
+            .with_technical_details(error.to_string());
     }
 
     // Disk space errors
     if error_msg.contains("no space") || error_msg.contains("disk full") {
-        return UserFriendlyError::new(
-            ErrorType::System,
-            "Insufficient disk space".to_string(),
-        )
-        .with_suggestions(vec![
-            "Free up disk space by removing unnecessary files".to_string(),
-            "Check disk usage: df -h".to_string(),
-            "Clear temporary files and caches".to_string(),
-            "Move files to external storage if needed".to_string(),
-        ])
-        .with_technical_details(error.to_string());
+        return UserFriendlyError::new(ErrorType::System, "Insufficient disk space".to_string())
+            .with_suggestions(vec![
+                "Free up disk space by removing unnecessary files".to_string(),
+                "Check disk usage: df -h".to_string(),
+                "Clear temporary files and caches".to_string(),
+                "Move files to external storage if needed".to_string(),
+            ])
+            .with_technical_details(error.to_string());
     }
 
     // Generic error fallback
@@ -372,9 +360,10 @@ pub fn display_info(message: &str) {
 /// Display configuration change confirmations
 pub fn display_config_change(setting: &str, old_value: &str, new_value: &str) {
     println!("{} Configuration updated:", "✅".green());
-    println!("  {}: {} → {}", 
-        setting.bold(), 
-        old_value.dimmed(), 
+    println!(
+        "  {}: {} → {}",
+        setting.bold(),
+        old_value.dimmed(),
         new_value.green().bold()
     );
     println!("{} Changes take effect immediately", "💡".cyan());
@@ -394,14 +383,23 @@ pub fn display_completion(message: &str) {
 
 /// Display helpful tips
 pub fn display_tip(message: &str) {
-    println!("{} {}: {}", "💡".cyan(), "Tip".bold().cyan(), message.dimmed());
+    println!(
+        "{} {}: {}",
+        "💡".cyan(),
+        "Tip".bold().cyan(),
+        message.dimmed()
+    );
 }
 
 /// Display system status information
 #[allow(dead_code)]
 pub fn display_status(component: &str, status: &str, is_healthy: bool) {
     let icon = if is_healthy { "✅" } else { "❌" };
-    let status_color = if is_healthy { status.green() } else { status.red() };
+    let status_color = if is_healthy {
+        status.green()
+    } else {
+        status.red()
+    };
     println!("{} {}: {}", icon, component.bold(), status_color);
 }
 
@@ -413,8 +411,9 @@ pub fn display_command_suggestion(description: &str, command: &str) {
 
 /// Display interface consistency message
 pub fn display_interface_reminder() {
-    println!("{} Remember: Use {} for all requests", 
-        "💡".cyan(), 
+    println!(
+        "{} Remember: Use {} for all requests",
+        "💡".cyan(),
         "cliai <your request>".green().bold()
     );
     println!("   No quotes needed, just speak naturally!");
@@ -423,7 +422,10 @@ pub fn display_interface_reminder() {
 /// Display terminal environment compatibility message
 #[allow(dead_code)]
 pub fn display_terminal_compatibility() {
-    println!("{} CLIAI works consistently across all terminal environments", "✅".green());
+    println!(
+        "{} CLIAI works consistently across all terminal environments",
+        "✅".green()
+    );
     println!("   Tested with: bash, zsh, fish, PowerShell, and more");
 }
 
@@ -434,10 +436,8 @@ mod tests {
 
     #[test]
     fn test_user_friendly_error_creation() {
-        let error = UserFriendlyError::new(
-            ErrorType::Connection,
-            "Test connection error".to_string(),
-        );
+        let error =
+            UserFriendlyError::new(ErrorType::Connection, "Test connection error".to_string());
 
         assert_eq!(error.error_type, ErrorType::Connection);
         assert_eq!(error.message, "Test connection error");
@@ -447,12 +447,9 @@ mod tests {
 
     #[test]
     fn test_user_friendly_error_with_suggestions() {
-        let error = UserFriendlyError::new(
-            ErrorType::Configuration,
-            "Config error".to_string(),
-        )
-        .with_suggestion("Try this".to_string())
-        .with_suggestion("Or this".to_string());
+        let error = UserFriendlyError::new(ErrorType::Configuration, "Config error".to_string())
+            .with_suggestion("Try this".to_string())
+            .with_suggestion("Or this".to_string());
 
         assert_eq!(error.suggestions.len(), 2);
         assert_eq!(error.suggestions[0], "Try this");
@@ -461,13 +458,13 @@ mod tests {
 
     #[test]
     fn test_user_friendly_error_with_technical_details() {
-        let error = UserFriendlyError::new(
-            ErrorType::System,
-            "System error".to_string(),
-        )
-        .with_technical_details("Stack trace here".to_string());
+        let error = UserFriendlyError::new(ErrorType::System, "System error".to_string())
+            .with_technical_details("Stack trace here".to_string());
 
-        assert_eq!(error.technical_details, Some("Stack trace here".to_string()));
+        assert_eq!(
+            error.technical_details,
+            Some("Stack trace here".to_string())
+        );
     }
 
     #[test]
@@ -478,7 +475,10 @@ mod tests {
         assert_eq!(enhanced.error_type, ErrorType::Connection);
         assert!(enhanced.message.contains("Unable to connect"));
         assert!(!enhanced.suggestions.is_empty());
-        assert!(enhanced.suggestions.iter().any(|s| s.contains("ollama serve")));
+        assert!(enhanced
+            .suggestions
+            .iter()
+            .any(|s| s.contains("ollama serve")));
     }
 
     #[test]
@@ -498,7 +498,10 @@ mod tests {
 
         assert_eq!(enhanced.error_type, ErrorType::Provider);
         assert!(enhanced.message.contains("No AI providers"));
-        assert!(enhanced.suggestions.iter().any(|s| s.contains("ollama serve")));
+        assert!(enhanced
+            .suggestions
+            .iter()
+            .any(|s| s.contains("ollama serve")));
     }
 
     #[test]
@@ -533,10 +536,7 @@ mod tests {
 
     #[test]
     fn test_error_display_trait() {
-        let error = UserFriendlyError::new(
-            ErrorType::Validation,
-            "Test error".to_string(),
-        );
+        let error = UserFriendlyError::new(ErrorType::Validation, "Test error".to_string());
 
         assert_eq!(format!("{}", error), "Test error");
     }

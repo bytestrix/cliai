@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use anyhow::{Result, anyhow};
 use crate::logging::{get_logger, LogCategory, LogContext};
+use anyhow::{anyhow, Result};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 /// Performance targets for different operation types
 #[derive(Debug, Clone)]
@@ -15,10 +15,10 @@ pub struct PerformanceTargets {
 impl Default for PerformanceTargets {
     fn default() -> Self {
         Self {
-            builtin_command: Duration::from_millis(10),  // <10ms target
-            local_ollama: Duration::from_secs(2),        // <2s target
-            cloud_provider: Duration::from_millis(800),  // <800ms target
-            total_system: Duration::from_secs(5),        // 5s maximum
+            builtin_command: Duration::from_millis(10), // <10ms target
+            local_ollama: Duration::from_secs(2),       // <2s target
+            cloud_provider: Duration::from_millis(800), // <800ms target
+            total_system: Duration::from_secs(5),       // 5s maximum
         }
     }
 }
@@ -63,7 +63,12 @@ pub struct PerformanceMeasurement {
 
 #[allow(dead_code)]
 impl PerformanceMeasurement {
-    pub fn new(operation_type: OperationType, duration: Duration, target: Duration, success: bool) -> Self {
+    pub fn new(
+        operation_type: OperationType,
+        duration: Duration,
+        target: Duration,
+        success: bool,
+    ) -> Self {
         Self {
             operation_type,
             duration,
@@ -74,7 +79,12 @@ impl PerformanceMeasurement {
         }
     }
 
-    pub fn with_error(operation_type: OperationType, duration: Duration, target: Duration, error: String) -> Self {
+    pub fn with_error(
+        operation_type: OperationType,
+        duration: Duration,
+        target: Duration,
+        error: String,
+    ) -> Self {
         Self {
             operation_type,
             duration,
@@ -146,65 +156,87 @@ impl PerformanceMonitor {
 
     /// Start timing an operation
     pub fn start_timer(&mut self, operation_id: String, operation_type: OperationType) {
-        self.active_timers.insert(operation_id, (operation_type, Instant::now()));
+        self.active_timers
+            .insert(operation_id, (operation_type, Instant::now()));
     }
 
     /// Stop timing an operation and record the measurement
-    pub fn stop_timer(&mut self, operation_id: &str, success: bool) -> Result<PerformanceMeasurement> {
+    pub fn stop_timer(
+        &mut self,
+        operation_id: &str,
+        success: bool,
+    ) -> Result<PerformanceMeasurement> {
         if let Some((operation_type, start_time)) = self.active_timers.remove(operation_id) {
             let duration = start_time.elapsed();
             let target = operation_type.get_target_duration(&self.targets);
-            let measurement = PerformanceMeasurement::new(operation_type, duration, target, success);
-            
+            let measurement =
+                PerformanceMeasurement::new(operation_type, duration, target, success);
+
             // Log performance measurement
             self.log_measurement(&measurement);
-            
+
             // Store measurement
             self.add_measurement(measurement.clone());
-            
+
             Ok(measurement)
         } else {
-            Err(anyhow!("No active timer found for operation: {}", operation_id))
+            Err(anyhow!(
+                "No active timer found for operation: {}",
+                operation_id
+            ))
         }
     }
 
     /// Stop timing with error
-    pub fn stop_timer_with_error(&mut self, operation_id: &str, error: String) -> Result<PerformanceMeasurement> {
+    pub fn stop_timer_with_error(
+        &mut self,
+        operation_id: &str,
+        error: String,
+    ) -> Result<PerformanceMeasurement> {
         if let Some((operation_type, start_time)) = self.active_timers.remove(operation_id) {
             let duration = start_time.elapsed();
             let target = operation_type.get_target_duration(&self.targets);
-            let measurement = PerformanceMeasurement::with_error(operation_type, duration, target, error);
-            
+            let measurement =
+                PerformanceMeasurement::with_error(operation_type, duration, target, error);
+
             // Log performance measurement
             self.log_measurement(&measurement);
-            
+
             // Store measurement
             self.add_measurement(measurement.clone());
-            
+
             Ok(measurement)
         } else {
-            Err(anyhow!("No active timer found for operation: {}", operation_id))
+            Err(anyhow!(
+                "No active timer found for operation: {}",
+                operation_id
+            ))
         }
     }
 
     /// Record a measurement directly (for operations measured externally)
-    pub fn record_measurement(&mut self, operation_type: OperationType, duration: Duration, success: bool) -> PerformanceMeasurement {
+    pub fn record_measurement(
+        &mut self,
+        operation_type: OperationType,
+        duration: Duration,
+        success: bool,
+    ) -> PerformanceMeasurement {
         let target = operation_type.get_target_duration(&self.targets);
         let measurement = PerformanceMeasurement::new(operation_type, duration, target, success);
-        
+
         // Log performance measurement
         self.log_measurement(&measurement);
-        
+
         // Store measurement
         self.add_measurement(measurement.clone());
-        
+
         measurement
     }
 
     /// Add measurement to history
     fn add_measurement(&mut self, measurement: PerformanceMeasurement) {
         self.measurements.push(measurement);
-        
+
         // Keep only the most recent measurements
         if self.measurements.len() > self.max_measurements {
             self.measurements.remove(0);
@@ -223,21 +255,27 @@ impl PerformanceMonitor {
 
                 let message = if measurement.success {
                     if measurement.exceeded_target() {
-                        format!("Performance target exceeded: {} took {} (target: {})", 
+                        format!(
+                            "Performance target exceeded: {} took {} (target: {})",
                             format!("{:?}", measurement.operation_type),
                             measurement.format_duration(),
-                            measurement.format_target())
+                            measurement.format_target()
+                        )
                     } else {
-                        format!("Performance within target: {} took {} (target: {})", 
+                        format!(
+                            "Performance within target: {} took {} (target: {})",
                             format!("{:?}", measurement.operation_type),
                             measurement.format_duration(),
-                            measurement.format_target())
+                            measurement.format_target()
+                        )
                     }
                 } else {
-                    format!("Operation failed: {} took {} (error: {})", 
+                    format!(
+                        "Operation failed: {} took {} (error: {})",
                         format!("{:?}", measurement.operation_type),
                         measurement.format_duration(),
-                        measurement.error.as_deref().unwrap_or("unknown"))
+                        measurement.error.as_deref().unwrap_or("unknown")
+                    )
                 };
 
                 let _ = logger_guard.log_with_context(LogCategory::Performance, &message, &context);
@@ -246,7 +284,11 @@ impl PerformanceMonitor {
     }
 
     /// Get recent measurements for a specific operation type
-    pub fn get_recent_measurements(&self, operation_type: &OperationType, count: usize) -> Vec<&PerformanceMeasurement> {
+    pub fn get_recent_measurements(
+        &self,
+        operation_type: &OperationType,
+        count: usize,
+    ) -> Vec<&PerformanceMeasurement> {
         self.measurements
             .iter()
             .rev()
@@ -257,7 +299,8 @@ impl PerformanceMonitor {
 
     /// Get performance statistics for an operation type
     pub fn get_performance_stats(&self, operation_type: &OperationType) -> PerformanceStats {
-        let measurements: Vec<&PerformanceMeasurement> = self.measurements
+        let measurements: Vec<&PerformanceMeasurement> = self
+            .measurements
             .iter()
             .filter(|m| m.operation_type == *operation_type)
             .collect();
@@ -290,7 +333,8 @@ impl PerformanceMonitor {
             min_duration,
             max_duration,
             success_rate: success_count as f64 / measurements.len() as f64,
-            target_compliance_rate: (measurements.len() - target_exceeded_count) as f64 / measurements.len() as f64,
+            target_compliance_rate: (measurements.len() - target_exceeded_count) as f64
+                / measurements.len() as f64,
         }
     }
 
@@ -330,11 +374,11 @@ impl PerformanceMonitor {
     /// Check if system is performing within acceptable limits
     pub fn is_system_healthy(&self) -> bool {
         let summary = self.get_system_performance_summary();
-        
+
         // System is healthy if:
         // 1. Overall success rate > 90%
         // 2. Critical operations (builtin, total system) have good compliance
-        
+
         if summary.overall_success_rate < 0.9 {
             return false;
         }
@@ -495,50 +539,72 @@ impl DegradationManager {
     /// Create a new degradation manager with default strategies
     pub fn new() -> Self {
         let mut strategies = HashMap::new();
-        
+
         // Built-in commands: should never degrade (they're already fast)
         strategies.insert(OperationType::BuiltinCommand, vec![]);
-        
+
         // Context gathering: can skip or use cache
-        strategies.insert(OperationType::ContextGathering, vec![
-            DegradationStrategy::UseCache,
-            DegradationStrategy::SkipOperation,
-        ]);
-        
+        strategies.insert(
+            OperationType::ContextGathering,
+            vec![
+                DegradationStrategy::UseCache,
+                DegradationStrategy::SkipOperation,
+            ],
+        );
+
         // Command validation: can reduce quality or timeout early
-        strategies.insert(OperationType::CommandValidation, vec![
-            DegradationStrategy::ReduceQuality,
-            DegradationStrategy::TimeoutEarly,
-        ]);
-        
+        strategies.insert(
+            OperationType::CommandValidation,
+            vec![
+                DegradationStrategy::ReduceQuality,
+                DegradationStrategy::TimeoutEarly,
+            ],
+        );
+
         // Intent classification: can use fallback or skip
-        strategies.insert(OperationType::IntentClassification, vec![
-            DegradationStrategy::UseFallback,
-            DegradationStrategy::SkipOperation,
-        ]);
-        
+        strategies.insert(
+            OperationType::IntentClassification,
+            vec![
+                DegradationStrategy::UseFallback,
+                DegradationStrategy::SkipOperation,
+            ],
+        );
+
         // Local Ollama: can timeout early or use fallback
-        strategies.insert(OperationType::LocalOllama, vec![
-            DegradationStrategy::TimeoutEarly,
-            DegradationStrategy::UseFallback,
-        ]);
-        
+        strategies.insert(
+            OperationType::LocalOllama,
+            vec![
+                DegradationStrategy::TimeoutEarly,
+                DegradationStrategy::UseFallback,
+            ],
+        );
+
         // Cloud provider: can use fallback or timeout early
-        strategies.insert(OperationType::CloudProvider, vec![
-            DegradationStrategy::UseFallback,
-            DegradationStrategy::TimeoutEarly,
-        ]);
-        
+        strategies.insert(
+            OperationType::CloudProvider,
+            vec![
+                DegradationStrategy::UseFallback,
+                DegradationStrategy::TimeoutEarly,
+            ],
+        );
+
         Self { strategies }
     }
 
     /// Get degradation strategies for an operation type
     pub fn get_strategies(&self, operation_type: &OperationType) -> Vec<DegradationStrategy> {
-        self.strategies.get(operation_type).cloned().unwrap_or_default()
+        self.strategies
+            .get(operation_type)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// Apply degradation strategy
-    pub fn apply_strategy(&self, strategy: &DegradationStrategy, operation_type: &OperationType) -> String {
+    pub fn apply_strategy(
+        &self,
+        strategy: &DegradationStrategy,
+        operation_type: &OperationType,
+    ) -> String {
         match strategy {
             DegradationStrategy::SkipOperation => {
                 format!("Skipping {:?} due to time constraints", operation_type)
@@ -550,7 +616,10 @@ impl DegradationManager {
                 format!("Using fallback method for {:?}", operation_type)
             }
             DegradationStrategy::ReduceQuality => {
-                format!("Reducing quality for {:?} to meet time constraints", operation_type)
+                format!(
+                    "Reducing quality for {:?} to meet time constraints",
+                    operation_type
+                )
             }
             DegradationStrategy::TimeoutEarly => {
                 format!("Applying early timeout for {:?}", operation_type)
@@ -576,10 +645,22 @@ mod tests {
     #[test]
     fn test_operation_type_target_duration() {
         let targets = PerformanceTargets::default();
-        assert_eq!(OperationType::BuiltinCommand.get_target_duration(&targets), Duration::from_millis(10));
-        assert_eq!(OperationType::LocalOllama.get_target_duration(&targets), Duration::from_secs(2));
-        assert_eq!(OperationType::CloudProvider.get_target_duration(&targets), Duration::from_millis(800));
-        assert_eq!(OperationType::TotalSystem.get_target_duration(&targets), Duration::from_secs(5));
+        assert_eq!(
+            OperationType::BuiltinCommand.get_target_duration(&targets),
+            Duration::from_millis(10)
+        );
+        assert_eq!(
+            OperationType::LocalOllama.get_target_duration(&targets),
+            Duration::from_secs(2)
+        );
+        assert_eq!(
+            OperationType::CloudProvider.get_target_duration(&targets),
+            Duration::from_millis(800)
+        );
+        assert_eq!(
+            OperationType::TotalSystem.get_target_duration(&targets),
+            Duration::from_secs(5)
+        );
     }
 
     #[test]
@@ -588,9 +669,9 @@ mod tests {
             OperationType::BuiltinCommand,
             Duration::from_millis(5),
             Duration::from_millis(10),
-            true
+            true,
         );
-        
+
         assert!(!measurement.exceeded_target());
         assert_eq!(measurement.performance_ratio(), 0.5);
         assert_eq!(measurement.format_duration(), "5ms");
@@ -603,9 +684,9 @@ mod tests {
             OperationType::BuiltinCommand,
             Duration::from_millis(15),
             Duration::from_millis(10),
-            true
+            true,
         );
-        
+
         assert!(measurement.exceeded_target());
         assert_eq!(measurement.performance_ratio(), 1.5);
     }
@@ -613,11 +694,11 @@ mod tests {
     #[test]
     fn test_performance_monitor_timer() {
         let mut monitor = PerformanceMonitor::new();
-        
+
         monitor.start_timer("test_op".to_string(), OperationType::BuiltinCommand);
         thread::sleep(Duration::from_millis(1));
         let measurement = monitor.stop_timer("test_op", true).unwrap();
-        
+
         assert!(measurement.success);
         assert!(measurement.duration >= Duration::from_millis(1));
         assert_eq!(measurement.operation_type, OperationType::BuiltinCommand);
@@ -626,13 +707,13 @@ mod tests {
     #[test]
     fn test_performance_monitor_record_measurement() {
         let mut monitor = PerformanceMonitor::new();
-        
+
         let measurement = monitor.record_measurement(
             OperationType::BuiltinCommand,
             Duration::from_millis(5),
-            true
+            true,
         );
-        
+
         assert!(measurement.success);
         assert!(!measurement.exceeded_target());
         assert_eq!(monitor.measurements.len(), 1);
@@ -641,14 +722,26 @@ mod tests {
     #[test]
     fn test_performance_stats() {
         let mut monitor = PerformanceMonitor::new();
-        
+
         // Record some measurements
-        monitor.record_measurement(OperationType::BuiltinCommand, Duration::from_millis(5), true);
-        monitor.record_measurement(OperationType::BuiltinCommand, Duration::from_millis(8), true);
-        monitor.record_measurement(OperationType::BuiltinCommand, Duration::from_millis(15), false); // Exceeded target
-        
+        monitor.record_measurement(
+            OperationType::BuiltinCommand,
+            Duration::from_millis(5),
+            true,
+        );
+        monitor.record_measurement(
+            OperationType::BuiltinCommand,
+            Duration::from_millis(8),
+            true,
+        );
+        monitor.record_measurement(
+            OperationType::BuiltinCommand,
+            Duration::from_millis(15),
+            false,
+        ); // Exceeded target
+
         let stats = monitor.get_performance_stats(&OperationType::BuiltinCommand);
-        
+
         assert_eq!(stats.total_operations, 3);
         assert_eq!(stats.successful_operations, 2);
         assert_eq!(stats.target_exceeded_count, 1);
@@ -659,11 +752,11 @@ mod tests {
     #[test]
     fn test_timeout_handler() {
         let handler = TimeoutHandler::new(Duration::from_millis(100));
-        
+
         assert!(!handler.is_expired());
         assert!(handler.remaining_time() <= Duration::from_millis(100));
         assert!(handler.has_time_for(Duration::from_millis(50)));
-        
+
         thread::sleep(Duration::from_millis(50));
         assert!(handler.elapsed_time() >= Duration::from_millis(50));
         assert!(handler.remaining_time() <= Duration::from_millis(50));
@@ -673,7 +766,7 @@ mod tests {
     fn test_timeout_handler_expired() {
         let handler = TimeoutHandler::new(Duration::from_millis(1));
         thread::sleep(Duration::from_millis(2));
-        
+
         assert!(handler.is_expired());
         assert_eq!(handler.remaining_time(), Duration::from_millis(0));
         assert!(!handler.has_time_for(Duration::from_millis(1)));
@@ -682,12 +775,12 @@ mod tests {
     #[test]
     fn test_degradation_manager() {
         let manager = DegradationManager::new();
-        
+
         let strategies = manager.get_strategies(&OperationType::ContextGathering);
         assert!(!strategies.is_empty());
         assert!(strategies.contains(&DegradationStrategy::UseCache));
         assert!(strategies.contains(&DegradationStrategy::SkipOperation));
-        
+
         let builtin_strategies = manager.get_strategies(&OperationType::BuiltinCommand);
         assert!(builtin_strategies.is_empty()); // Built-in commands shouldn't degrade
     }
@@ -695,14 +788,26 @@ mod tests {
     #[test]
     fn test_system_performance_summary() {
         let mut monitor = PerformanceMonitor::new();
-        
+
         // Record measurements for different operation types
-        monitor.record_measurement(OperationType::BuiltinCommand, Duration::from_millis(5), true);
-        monitor.record_measurement(OperationType::LocalOllama, Duration::from_millis(1500), true);
-        monitor.record_measurement(OperationType::CloudProvider, Duration::from_millis(600), true);
-        
+        monitor.record_measurement(
+            OperationType::BuiltinCommand,
+            Duration::from_millis(5),
+            true,
+        );
+        monitor.record_measurement(
+            OperationType::LocalOllama,
+            Duration::from_millis(1500),
+            true,
+        );
+        monitor.record_measurement(
+            OperationType::CloudProvider,
+            Duration::from_millis(600),
+            true,
+        );
+
         let summary = monitor.get_system_performance_summary();
-        
+
         assert_eq!(summary.total_operations, 3);
         assert_eq!(summary.successful_operations, 3);
         assert_eq!(summary.overall_success_rate, 1.0);
@@ -714,18 +819,22 @@ mod tests {
     #[test]
     fn test_system_health_check() {
         let mut monitor = PerformanceMonitor::new();
-        
+
         // Record good measurements
-        monitor.record_measurement(OperationType::BuiltinCommand, Duration::from_millis(5), true);
+        monitor.record_measurement(
+            OperationType::BuiltinCommand,
+            Duration::from_millis(5),
+            true,
+        );
         monitor.record_measurement(OperationType::TotalSystem, Duration::from_secs(3), true);
-        
+
         assert!(monitor.is_system_healthy());
-        
+
         // Record many failed measurements
         for _ in 0..10 {
             monitor.record_measurement(OperationType::TotalSystem, Duration::from_secs(6), false);
         }
-        
+
         assert!(!monitor.is_system_healthy());
     }
 }

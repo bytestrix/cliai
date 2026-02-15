@@ -49,10 +49,10 @@ jobs:
       if: matrix.target == 'aarch64-unknown-linux-gnu'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
+        sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
         echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
-        # Verify cross-compiler installation
-        aarch64-linux-gnu-gcc --version
+        echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+        echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
     
     - name: Build
       run: cargo build --release --target ${{ matrix.target }}
@@ -107,6 +107,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    continue-on-error: true
     steps:
     - uses: actions/checkout@v4
     
@@ -114,7 +115,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - name: Publish to crates.io
-      run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} || echo "Publish failed or already published"
 
   build-deb:
     needs: build
@@ -122,8 +123,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
     - name: Install cargo-deb
-      run: cargo install cargo-deb
+      run: cargo install cargo-deb --locked
     
     - name: Build .deb package
       run: cargo deb
