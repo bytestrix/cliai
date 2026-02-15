@@ -97,10 +97,11 @@ impl MultiStepHandler {
             self.current_step += 1;
 
             // If step failed and next step depends on it, skip remaining steps
-            if !success && self.current_step < self.steps.len() {
-                if self.steps[self.current_step].depends_on_previous {
-                    return false; // Stop execution
-                }
+            if !success
+                && self.current_step < self.steps.len()
+                && self.steps[self.current_step].depends_on_previous
+            {
+                return false; // Stop execution
             }
 
             true

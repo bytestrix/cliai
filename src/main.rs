@@ -1,4 +1,3 @@
-use chrono;
 use clap::{Parser, Subcommand};
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -695,7 +694,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 };
 
-                match config.set_safety_level(safety_level.clone()) {
+                match config.set_safety_level(safety_level) {
                     Ok(_) => {
                         display_config_change(
                             "safety_level",
@@ -728,7 +727,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut config = app_config.clone();
                 let old_timeout = config.context_timeout.to_string();
 
-                if timeout < 1000 || timeout > 60000 {
+                if !(1000..=60000).contains(&timeout) {
                     eprintln!(
                         "{} Timeout must be between 1000ms (1s) and 60000ms (60s)",
                         "❌".red()
@@ -768,7 +767,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut config = app_config.clone();
                 let old_timeout = config.ai_timeout.to_string();
 
-                if timeout < 10000 || timeout > 600000 {
+                if !(10000..=600000).contains(&timeout) {
                     eprintln!(
                         "{} AI timeout must be between 10000ms (10s) and 600000ms (10min)",
                         "❌".red()
@@ -790,7 +789,7 @@ async fn main() -> anyhow::Result<()> {
                             display_warning(
                                 "Short AI timeout may cause requests to fail for slower models",
                             );
-                        } else if timeout >= 30000 && timeout <= 120000 {
+                        } else if (30000..=120000).contains(&timeout) {
                             display_success(&format!(
                                 "AI timeout set to {}ms ({}s)",
                                 timeout,
@@ -1355,12 +1354,10 @@ async fn run_ai_prompt(prompt: String, app_config: config::Config) -> anyhow::Re
                             if execution_mode.can_execute() {
                                 execute_command_with_confirmation(&validated_cmd, &execution_mode)
                                     .await?;
-                            } else {
-                                if let Some(instructions) =
-                                    executable_cmd.get_execution_instructions()
-                                {
-                                    println!("\n{} {}", "💡".cyan(), instructions.dimmed());
-                                }
+                            } else if let Some(instructions) =
+                                executable_cmd.get_execution_instructions()
+                            {
+                                println!("\n{} {}", "💡".cyan(), instructions.dimmed());
                             }
                         }
                         ValidationResult::Rewritten(rewritten_cmd, fixes) => {
@@ -1372,12 +1369,10 @@ async fn run_ai_prompt(prompt: String, app_config: config::Config) -> anyhow::Re
                             if execution_mode.can_execute() {
                                 execute_command_with_confirmation(&rewritten_cmd, &execution_mode)
                                     .await?;
-                            } else {
-                                if let Some(instructions) =
-                                    executable_cmd.get_execution_instructions()
-                                {
-                                    println!("\n{} {}", "💡".cyan(), instructions.dimmed());
-                                }
+                            } else if let Some(instructions) =
+                                executable_cmd.get_execution_instructions()
+                            {
+                                println!("\n{} {}", "💡".cyan(), instructions.dimmed());
                             }
                         }
                         ValidationResult::Invalid(invalid_cmd, errors) => {
@@ -1427,10 +1422,8 @@ async fn run_ai_prompt(prompt: String, app_config: config::Config) -> anyhow::Re
                             if execution_mode.can_execute() {
                                 execute_command_with_confirmation(&sensitive_cmd, &execution_mode)
                                     .await?;
-                            } else {
-                                if let Some(reason) = execution_mode.get_block_reason() {
-                                    println!("\n{} {}", "🚫".red(), reason.red());
-                                }
+                            } else if let Some(reason) = execution_mode.get_block_reason() {
+                                println!("\n{} {}", "🚫".red(), reason.red());
                             }
                         }
                     }

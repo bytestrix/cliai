@@ -379,13 +379,11 @@ impl ProviderManager {
     }
 
     /// Get provider by type (returns first match)
-    pub fn get_provider_by_type(
-        &self,
-        provider_type: &ProviderType,
-    ) -> Option<&Box<dyn AIProvider>> {
+    pub fn get_provider_by_type(&self, provider_type: &ProviderType) -> Option<&dyn AIProvider> {
         self.providers
             .iter()
             .find(|p| p.get_provider_type() == *provider_type)
+            .map(|b| &**b as &dyn AIProvider)
     }
 
     /// Get provider status for debugging

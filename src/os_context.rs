@@ -381,7 +381,7 @@ impl OSContext {
     /// Get cache file path
     fn get_cache_path() -> Result<PathBuf> {
         let cache_dir = dirs::cache_dir()
-            .or_else(|| dirs::config_dir())
+            .or_else(dirs::config_dir)
             .ok_or_else(|| anyhow!("Could not find cache directory"))?;
         Ok(cache_dir.join("cliai").join("os_context.json"))
     }
@@ -410,6 +410,12 @@ pub struct ArchCommands {
 }
 
 #[allow(dead_code)]
+impl Default for ArchCommands {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ArchCommands {
     pub fn new() -> Self {
         let aur_helper = Self::detect_aur_helper();

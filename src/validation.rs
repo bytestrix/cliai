@@ -90,6 +90,12 @@ impl ShellToken {
 /// Simple shell parser for token-aware safety checking
 pub struct ShellParser;
 
+impl Default for ShellParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ShellParser {
     pub fn new() -> Self {
         Self
@@ -892,7 +898,7 @@ impl CommandValidator for DefaultCommandValidator {
         if !placeholders.is_empty() {
             let errors = placeholders
                 .into_iter()
-                .map(|p| ValidationError::PlaceholderDetected(p))
+                .map(ValidationError::PlaceholderDetected)
                 .collect();
             return ValidationResult::Invalid(trimmed.to_string(), errors);
         }
@@ -940,7 +946,7 @@ impl CommandValidator for DefaultCommandValidator {
                 if !error_messages.is_empty() {
                     let errors = error_messages
                         .into_iter()
-                        .map(|msg| ValidationError::QuotingIssue(msg))
+                        .map(ValidationError::QuotingIssue)
                         .collect();
                     return ValidationResult::Invalid(final_command, errors);
                 }
@@ -962,7 +968,7 @@ impl CommandValidator for DefaultCommandValidator {
             } else {
                 let errors = hallucinated
                     .into_iter()
-                    .map(|flag| ValidationError::HallucinatedFlag(flag))
+                    .map(ValidationError::HallucinatedFlag)
                     .collect();
                 return ValidationResult::Invalid(final_command, errors);
             }

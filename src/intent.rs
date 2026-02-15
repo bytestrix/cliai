@@ -487,7 +487,7 @@ impl IntentClassifier {
         let first_word = command.split_whitespace().next().unwrap_or("");
 
         // Allow informational commands
-        if informational_commands.iter().any(|cmd| first_word == *cmd) {
+        if informational_commands.contains(&first_word) {
             return true;
         }
 

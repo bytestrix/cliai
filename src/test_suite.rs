@@ -2,7 +2,6 @@ use crate::agents::Orchestrator;
 use crate::config::Config;
 use crate::history::History;
 use anyhow::{anyhow, Result};
-use chrono;
 use colored::*;
 use regex::Regex;
 use std::collections::HashMap;
@@ -103,6 +102,12 @@ pub struct ExecutionResult {
 }
 
 #[allow(dead_code)]
+impl Default for TestSuite {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TestSuite {
     pub fn new() -> Self {
         let mut suite = Self {
@@ -1078,7 +1083,7 @@ impl TestSuite {
             .filter(|r| r.status == TestStatus::PartialSuccess)
             .collect();
 
-        analysis.push_str(&format!("## Summary\n"));
+        analysis.push_str("## Summary\n");
         analysis.push_str(&format!("- Total Tests: {}\n", results.len()));
         analysis.push_str(&format!(
             "- Passed: {}\n",
@@ -1104,7 +1109,7 @@ impl TestSuite {
                     "### Question {}: {}\n",
                     test.question_id, test.question
                 ));
-                analysis.push_str(&format!("**Status:** Failed\n"));
+                analysis.push_str("**Status:** Failed\n");
                 if let Some(details) = &test.failure_details {
                     analysis.push_str(&format!("**Failure Reason:** {}\n", details));
                 }
@@ -1121,7 +1126,7 @@ impl TestSuite {
                     "**Response Time:** {}ms\n",
                     test.execution_time_ms
                 ));
-                analysis.push_str("\n");
+                analysis.push('\n');
             }
         }
 
@@ -1132,7 +1137,7 @@ impl TestSuite {
                     "### Question {}: {}\n",
                     test.question_id, test.question
                 ));
-                analysis.push_str(&format!("**Status:** Partial Success\n"));
+                analysis.push_str("**Status:** Partial Success\n");
                 if let Some(details) = &test.failure_details {
                     analysis.push_str(&format!("**Issue:** {}\n", details));
                 }
@@ -1143,7 +1148,7 @@ impl TestSuite {
                     "**Response Time:** {}ms\n",
                     test.execution_time_ms
                 ));
-                analysis.push_str("\n");
+                analysis.push('\n');
             }
         }
 
@@ -1166,7 +1171,7 @@ impl TestSuite {
             analysis.push_str("No required pattern validation failures detected.\n");
         }
 
-        analysis.push_str("\n");
+        analysis.push('\n');
 
         // Hallucinated flags analysis
         analysis.push_str("## Hallucinated Flags Analysis\n\n");
@@ -1226,7 +1231,7 @@ impl TestSuite {
                 "{} Processing batch {}/{} ({} questions)",
                 "🔄".cyan(),
                 batch_index + 1,
-                (total_questions + batch_size - 1) / batch_size,
+                total_questions.div_ceil(batch_size),
                 batch.len()
             );
 
@@ -1333,7 +1338,7 @@ impl TestSuite {
             }
 
             // Small delay between batches to avoid overwhelming the system
-            if batch_index < (total_questions + batch_size - 1) / batch_size - 1 {
+            if batch_index < total_questions.div_ceil(batch_size) - 1 {
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
         }
@@ -1411,56 +1416,54 @@ impl TestSuite {
 
             let batch_results = futures::future::join_all(batch_futures).await;
 
-            for result in batch_results {
-                if let Ok((question, ai_response, execution_time)) = result {
-                    let test_result = if ai_response.starts_with("ERROR:") {
-                        TestResult {
-                            question_id: question.id,
-                            question: question.question.clone(),
-                            ai_response: ai_response.clone(),
-                            extracted_command: None,
-                            execution_time_ms: execution_time.as_millis() as u64,
-                            status: TestStatus::Failed,
-                            pattern_matches: Vec::new(),
-                            hallucinated_flags_found: Vec::new(),
-                            execution_result: None,
-                            failure_details: Some(
-                                ai_response
-                                    .strip_prefix("ERROR: ")
-                                    .unwrap_or(&ai_response)
-                                    .to_string(),
-                            ),
-                        }
-                    } else {
-                        self.run_test(&question, ai_response, execution_time).await
-                    };
-
-                    match test_result.status {
-                        TestStatus::Passed => println!(
-                            "  {} Q{}: Passed ({}ms)",
-                            "✅".green(),
-                            question.id,
-                            test_result.execution_time_ms
+            for (question, ai_response, execution_time) in batch_results.into_iter().flatten() {
+                let test_result = if ai_response.starts_with("ERROR:") {
+                    TestResult {
+                        question_id: question.id,
+                        question: question.question.clone(),
+                        ai_response: ai_response.clone(),
+                        extracted_command: None,
+                        execution_time_ms: execution_time.as_millis() as u64,
+                        status: TestStatus::Failed,
+                        pattern_matches: Vec::new(),
+                        hallucinated_flags_found: Vec::new(),
+                        execution_result: None,
+                        failure_details: Some(
+                            ai_response
+                                .strip_prefix("ERROR: ")
+                                .unwrap_or(&ai_response)
+                                .to_string(),
                         ),
-                        TestStatus::Failed => println!(
-                            "  {} Q{}: Failed ({}ms)",
-                            "❌".red(),
-                            question.id,
-                            test_result.execution_time_ms
-                        ),
-                        TestStatus::PartialSuccess => println!(
-                            "  {} Q{}: Partial ({}ms)",
-                            "⚠️".yellow(),
-                            question.id,
-                            test_result.execution_time_ms
-                        ),
-                        TestStatus::NotExecuted => {
-                            println!("  {} Q{}: Not executed", "⏸️".dimmed(), question.id)
-                        }
                     }
+                } else {
+                    self.run_test(&question, ai_response, execution_time).await
+                };
 
-                    all_results.push(test_result);
+                match test_result.status {
+                    TestStatus::Passed => println!(
+                        "  {} Q{}: Passed ({}ms)",
+                        "✅".green(),
+                        question.id,
+                        test_result.execution_time_ms
+                    ),
+                    TestStatus::Failed => println!(
+                        "  {} Q{}: Failed ({}ms)",
+                        "❌".red(),
+                        question.id,
+                        test_result.execution_time_ms
+                    ),
+                    TestStatus::PartialSuccess => println!(
+                        "  {} Q{}: Partial ({}ms)",
+                        "⚠️".yellow(),
+                        question.id,
+                        test_result.execution_time_ms
+                    ),
+                    TestStatus::NotExecuted => {
+                        println!("  {} Q{}: Not executed", "⏸️".dimmed(), question.id)
+                    }
                 }
+
+                all_results.push(test_result);
             }
 
             tokio::time::sleep(Duration::from_millis(200)).await;
