@@ -1,11 +1,15 @@
-# CLIAI 🤖
+<div align="center">
+  <img src="cliai-banner.png" alt="CLIAI Banner" width="100%" />
 
-[![CI](https://github.com/bytestrix/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/bytestrix/cliai/actions/workflows/ci.yml)
-[![Documentation](https://github.com/bytestrix/cliai/actions/workflows/docs.yml/badge.svg)](https://bytestrix.github.io/cliai/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Crates.io](https://img.shields.io/crates/v/cliai.svg)](https://crates.io/crates/cliai)
+  # CLIAI 🤖
 
-**Your intelligent CLI assistant powered by AI**
+  [![CI](https://github.com/bytestrix/cliai/actions/workflows/ci.yml/badge.svg)](https://github.com/bytestrix/cliai/actions/workflows/ci.yml)
+  [![Documentation](https://github.com/bytestrix/cliai/actions/workflows/docs.yml/badge.svg)](https://bytestrix.github.io/cliai/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Crates.io](https://img.shields.io/crates/v/cliai.svg)](https://crates.io/crates/cliai)
+
+  **Your intelligent CLI assistant powered by AI**
+</div>
 
 CLIAI is a completely free and open-source command-line AI assistant that helps you with terminal commands, system administration, and general questions. Use your own API keys (OpenAI, Anthropic, etc.) or run locally with Ollama for maximum privacy.
 
